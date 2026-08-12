@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>検証B</title></head><body>
+<h2>テストB</h2>
+<div id="r">読み取り中</div>
+<script>
+var p = new URLSearchParams(location.search);
+document.getElementById('r').textContent =
+  "method=" + (p.get('method') || '(なし)')
+  + " / step=" + (p.get('step') || '(なし)');
+</script>
+</body></html>

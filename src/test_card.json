@@ -1,0 +1,46 @@
+{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.4",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "テスト手配タスク",
+      "weight": "Bolder",
+      "size": "Medium"
+    },
+    {
+      "type": "TextBlock",
+      "text": "納期: 2026/09/30 ／ 数量: 45",
+      "wrap": true
+    },
+    {
+      "type": "Input.ChoiceSet",
+      "id": "status",
+      "label": "ステータス",
+      "value": "done",
+      "choices": [
+        { "title": "確認しました", "value": "done" },
+        { "title": "保留", "value": "hold" }
+      ]
+    },
+    {
+      "type": "Input.Date",
+      "id": "newdate",
+      "label": "納期を変更する場合"
+    },
+    {
+      "type": "Input.Text",
+      "id": "comment",
+      "label": "コメント",
+      "isMultiline": true,
+      "placeholder": "自由に記入"
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.Submit",
+      "title": "送信"
+    }
+  ]
+}

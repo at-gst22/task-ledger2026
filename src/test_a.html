@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>検証A</title></head><body>
+<h2>テストA</h2>
+
+<p>■ テスト1: メール生成</p>
+<a id="m" href="#">Outlookでメールを開く</a>
+
+<p>■ テスト2: 相対リンク＋パラメータ</p>
+<a href="test_b.html?method=%E6%89%8B%E9%85%8D%E6%96%B9%E6%B3%95A&step=5">
+テストBへ移動</a>
+
+<p>■ テスト3: Excel貼り付けの解析</p>
+<textarea id="a" rows="5" cols="40" placeholder="ここにExcelから貼り付け"></textarea>
+<div id="r"></div>
+
+<script>
+var body = "各位\n\nお世話になっております。\n\n"
+  + "下記のとおり手配をお願いいたします。\n"
+  + "・品名: テスト部材\n"
+  + "・数量: 45\n"
+  + "・納期: 2026/09/30\n\n"
+  + "以上、よろしくお願いいたします。";
+document.getElementById('m').href =
+  "mailto:?subject=" + encodeURIComponent("【テスト】部材手配のご依頼")
+  + "&body=" + encodeURIComponent(body);
+
+document.getElementById('a').addEventListener('paste', function(){
+  setTimeout(function(){
+    var v = document.getElementById('a').value;
+    var rows = v.split(/\r\n|\r|\n/).filter(function(s){ return s.length > 0; });
+    var cols = rows.length > 0 ? rows[0].split('\t').length : 0;
+    document.getElementById('r').textContent =
+      '取得: ' + rows.length + '行 × ' + cols + '列';
+  }, 0);
+});
+</script>
+</body></html>
