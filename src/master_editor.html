@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>部材手配 マスタ編集ツール</title>
+<style>
+:root{
+  --ground:#FBFBF9; --panel:#FFFFFF;
+  --ink:#1A2332; --ink-2:#4A5568; --ink-3:#8A94A6;
+  --rule:#DCDCD6; --rule-2:#EDEDE8;
+  --accent:#1F5C8B; --accent-soft:#E8F0F6;
+  --signal:#B5710F; --signal-soft:#FBF2E2;
+  --danger:#9B2C2C; --danger-soft:#FBEAEA;
+  --ok:#2F6B4F; --ok-soft:#E7F1EC; --ok-line:#B9D6C7;
+  --mono:"Consolas","SFMono-Regular","BIZ UDGothic",monospace;
+  --sans:"Yu Gothic UI","Yu Gothic","Meiryo",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+
+header.top{border-bottom:1px solid var(--rule);background:var(--panel);position:sticky;top:0;z-index:30}
+.top-in{max-width:1200px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.title{font-size:16px;font-weight:700;letter-spacing:.04em;margin:0}
+.ver{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.tabs{display:flex;gap:2px;margin-left:auto;flex-wrap:wrap}
+.tab{border:1px solid var(--rule);background:var(--panel);padding:5px 12px;cursor:pointer;font-size:13px}
+.tab:hover{background:#F4F4F0}
+.tab.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.tab .n{font-family:var(--mono);font-size:11px;opacity:.7;margin-left:6px}
+
+.wrap{max-width:1200px;margin:0 auto;padding:16px 20px 100px}
+.pane{display:none}
+.pane.on{display:block}
+
+.card{background:var(--panel);border:1px solid var(--rule);margin-bottom:16px}
+.card-h{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--rule-2)}
+.card-t{font-weight:700;font-size:13px;letter-spacing:.03em}
+.card-h .btns{margin-left:auto}
+.card-b{padding:14px}
+
+.f{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.f>label{font-size:12px;font-weight:600;color:var(--ink-2)}
+.hint{font-size:11px;color:var(--ink-3);line-height:1.5}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+input,select,textarea{border:1px solid var(--rule);background:var(--panel);padding:6px 8px;width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+textarea{resize:vertical;line-height:1.6}
+textarea.paste{font-family:var(--mono);font-size:12px;min-height:90px;
+  border-style:dashed;background:#FCFCFA}
+textarea.json{font-family:var(--mono);font-size:11px;min-height:260px;white-space:pre;background:#FCFCFA}
+
+button{border:1px solid var(--ink);background:var(--panel);color:var(--ink);
+  padding:6px 13px;cursor:pointer;letter-spacing:.02em}
+button:hover{background:#F2F2EE}
+button.primary{background:var(--ink);color:var(--panel)}
+button.primary:hover{background:#2B3A4E}
+button.ghost{border-color:var(--rule);color:var(--ink-2)}
+button.ghost:hover{background:#F5F5F1}
+button.sm{padding:2px 8px;font-size:12px}
+button.danger{border-color:#C99;color:var(--danger)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.note{border-left:3px solid;padding:9px 12px;margin:10px 0;font-size:13px}
+.note.warn{border-color:var(--signal);background:var(--signal-soft)}
+.note.err{border-color:var(--danger);background:var(--danger-soft)}
+.note.ok{border-color:var(--ok);background:var(--ok-soft)}
+.note.info{border-color:var(--accent);background:var(--accent-soft)}
+.note b{display:block;margin-bottom:2px}
+.note ul{margin:4px 0 0;padding-left:18px}
+
+table.g{width:100%;border-collapse:collapse;font-size:13px}
+table.g th{text-align:left;font-size:11px;font-weight:600;color:var(--ink-3);
+  letter-spacing:.05em;border-bottom:1px solid var(--rule);padding:5px 7px;
+  position:sticky;top:0;background:var(--panel);z-index:2}
+table.g td{border-bottom:1px solid var(--rule-2);padding:3px 7px;vertical-align:middle}
+table.g tr:hover td{background:#FAFAF6}
+table.g tr.sel td{background:var(--accent-soft)}
+table.g input,table.g select{padding:3px 6px;font-size:13px}
+table.g td.c{width:34px;text-align:center}
+table.g td.a{width:44px;text-align:right}
+table.g td.code{width:110px;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.scroll{max-height:420px;overflow:auto;border:1px solid var(--rule-2)}
+.scroll.short{max-height:260px}
+
+.stats{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;
+  padding:9px 12px;background:#F7F7F3;border:1px solid var(--rule-2);margin-bottom:12px}
+.stats i{font-style:normal;color:var(--ink-3)}
+.stats b{color:var(--ink)}
+
+.ordlist{border:1px solid var(--rule-2);max-height:340px;overflow:auto}
+.ord{display:flex;align-items:center;gap:8px;padding:3px 8px;border-bottom:1px solid var(--rule-2)}
+.ord:hover{background:#FAFAF6}
+.ord .i{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent);
+  min-width:26px;text-align:right;flex:0 0 auto}
+.ord .src{font-size:12px;color:var(--ink-2);flex:0 0 200px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.ord select{flex:1;min-width:0}
+.ord.miss{background:var(--danger-soft)}
+.ord.miss .i{color:var(--danger)}
+.ord.auto .i{color:var(--ok)}
+
+.pill{display:inline-block;font-size:11px;padding:1px 7px;border:1px solid var(--rule);color:var(--ink-2)}
+.pill.ok{background:var(--ok-soft);border-color:var(--ok-line);color:var(--ok)}
+.pill.miss{background:var(--danger-soft);border-color:#E5C4C4;color:var(--danger)}
+.mono{font-family:var(--mono)}
+.mut{color:var(--ink-3)}
+hr.sp{border:0;border-top:1px solid var(--rule-2);margin:14px 0}
+
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--rule);z-index:30}
+.bar-in{max-width:1200px;margin:0 auto;padding:9px 20px;display:flex;align-items:center;gap:12px}
+.bar .st{font-size:12px;color:var(--ink-2)}
+.bar .btns{margin-left:auto}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <h1 class="title">マスタ編集ツール</h1>
+    <span class="ver" id="verLabel">未読み込み</span>
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-p="pIO">読み込み・書き出し</button>
+      <button class="tab" data-p="pCls">分類<span class="n" id="nCls">0</span></button>
+      <button class="tab" data-p="pParts">部材<span class="n" id="nParts">0</span></button>
+      <button class="tab" data-p="pMethods">手配方法<span class="n" id="nMethods">0</span></button>
+      <button class="tab" data-p="pGroups">部材群<span class="n" id="nGroups">0</span></button>
+      <button class="tab" data-p="pFormats">フォーマット<span class="n" id="nFormats">0</span></button>
+      <button class="tab" data-p="pPeople">担当者<span class="n" id="nPeople">0</span></button>
+      <button class="tab" data-p="pTexts">文面・URL</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ========== 読み込み・書き出し ========== -->
+<div class="pane on" id="pIO">
+  <div class="card">
+    <div class="card-h"><span class="card-t">はじめに</span></div>
+    <div class="card-b">
+      <div class="note info">
+        <b>このツールはマスタのJSONを作るためのものです。</b>
+        作ったJSONを起票ツールの管理者モードに貼り付けると、新しい起票ツールが書き出せます。
+        <ul>
+          <li>このツール自体はマスタを保存しません。作業のたびにJSONを読み込んでください</li>
+          <li>編集した内容は、必ず最後にJSONとして保存してください</li>
+        </ul>
+      </div>
+      <div class="row">
+        <div class="f" style="flex:0 0 170px">
+          <label for="ioVer">版数</label>
+          <input type="text" id="ioVer" placeholder="0.1.0">
+        </div>
+        <div class="f" style="flex:0 0 170px">
+          <label for="ioDate">更新日</label>
+          <input type="date" id="ioDate">
+        </div>
+      </div>
+      <div class="f">
+        <label for="ioBox">マスタ（JSON）</label>
+        <div class="hint">既存のマスタを貼り付けて「読み込む」を押します。新規に作る場合は「空から始める」を押してください。</div>
+        <textarea class="json" id="ioBox" spellcheck="false"></textarea>
+      </div>
+      <div class="btns">
+        <button class="primary" id="btnLoad">読み込む</button>
+        <button class="ghost" id="btnBlank">空から始める</button>
+        <button class="ghost" id="btnSample">サンプルを入れる</button>
+      </div>
+      <div id="ioMsg"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="card-t">検証と書き出し</span></div>
+    <div class="card-b">
+      <div class="stats" id="ioStats"></div>
+      <div class="btns" style="margin-bottom:10px">
+        <button id="btnCheck">検証する</button>
+        <button class="primary" id="btnExport">JSONを保存</button>
+        <button class="ghost" id="btnCopy">JSONをコピー</button>
+      </div>
+      <div id="checkMsg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 分類 ========== -->
+<div class="pane" id="pCls">
+  <div class="card">
+    <div class="card-h"><span class="card-t">分類コード</span>
+      <div class="btns"><button class="ghost sm" id="clsAdd">1行足す</button></div></div>
+    <div class="card-b">
+      <div class="hint" style="margin-bottom:8px">
+        部材を手配方法へ振り分けるための分類です。説明文は起票ツールで参照されます。
+      </div>
+      <div class="f">
+        <label>Excelから貼り付け</label>
+        <div class="hint">コード / 名称 / 説明 の3列を貼り付けます（見出し行は含めない）</div>
+        <textarea class="paste" id="clsPaste" placeholder="C10	標準品	常時取り扱いのある部材"></textarea>
+      </div>
+      <div class="scroll"><table class="g" id="clsTable"></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 部材 ========== -->
+<div class="pane" id="pParts">
+  <div class="card">
+    <div class="card-h"><span class="card-t">部材マスタ</span>
+      <div class="btns">
+        <button class="ghost sm" id="partAdd">1行足す</button>
+        <button class="ghost sm" id="partDelSel">選択行を消す</button>
+      </div></div>
+    <div class="card-b">
+      <div class="f">
+        <label>Excelから貼り付け</label>
+        <div class="hint">
+          品番 / 品名 / 分類コード の3列を貼り付けます（見出し行は含めない）。
+          内部コードは自動で採番します。品番が空でも構いません。
+        </div>
+        <textarea class="paste" id="partPaste" placeholder="AAA-001	品名A 12インチ	C10"></textarea>
+        <div class="btns">
+          <label class="hint" style="display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="partReplace" style="width:auto"> 貼り付けたら既存を置き換える
+          </label>
+        </div>
+      </div>
+      <hr class="sp">
+      <div class="row" style="align-items:flex-end">
+        <div class="f" style="flex:0 0 220px;margin-bottom:0">
+          <label for="bulkCls">選択行の分類をまとめて変える</label>
+          <select id="bulkCls"></select>
+        </div>
+        <div class="btns" style="margin-bottom:2px">
+          <button class="ghost sm" id="bulkApply">選択行に適用</button>
+          <button class="ghost sm" id="selAll">すべて選択</button>
+          <button class="ghost sm" id="selNone">選択を外す</button>
+          <button class="ghost sm" id="selNoCls">分類なしを選択</button>
+        </div>
+      </div>
+      <div class="hint" id="partSelInfo" style="margin:6px 0"></div>
+      <div class="scroll"><table class="g" id="partTable"></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 手配方法 ========== -->
+<div class="pane" id="pMethods">
+  <div class="card">
+    <div class="card-h"><span class="card-t">手配方法</span>
+      <div class="btns"><button class="ghost sm" id="mAdd">1つ足す</button></div></div>
+    <div class="card-b">
+      <div class="hint" style="margin-bottom:8px">
+        分類コードから手配方法が決まります。通る段階とリードタイムは、逆算と表示に使います。
+      </div>
+      <div id="mList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 部材群 ========== -->
+<div class="pane" id="pGroups">
+  <div class="card">
+    <div class="card-h"><span class="card-t">部材群</span>
+      <div class="btns"><button class="ghost sm" id="gAdd">1つ足す</button></div></div>
+    <div class="card-b"><div id="gList"></div></div>
+  </div>
+</div>
+
+<!-- ========== フォーマット ========== -->
+<div class="pane" id="pFormats">
+  <div class="card">
+    <div class="card-h"><span class="card-t">フォーマット定義</span>
+      <div class="btns"><button class="ghost sm" id="fAdd">1つ足す</button></div></div>
+    <div class="card-b">
+      <div class="note info">
+        <b>並びは、Excelの品名の行（列）を貼り付けて作ります。</b>
+        部材マスタと照合して自動で埋まります。一致しなかったものだけ選び直してください。
+      </div>
+      <div class="f">
+        <label for="fSel">編集するフォーマット</label>
+        <select id="fSel"></select>
+      </div>
+      <div id="fEdit"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 担当者 ========== -->
+<div class="pane" id="pPeople">
+  <div class="card">
+    <div class="card-h"><span class="card-t">担当者</span>
+      <div class="btns"><button class="ghost sm" id="pAdd">1行足す</button></div></div>
+    <div class="card-b">
+      <div class="f">
+        <label>Excelから貼り付け</label>
+        <div class="hint">氏名 / メールアドレス の2列を貼り付けます（見出し行は含めない）</div>
+        <textarea class="paste" id="peoPaste" placeholder="担当X	x@example.com"></textarea>
+      </div>
+      <div class="note warn">
+        <b>メールアドレスの誤りは、通知が届かない原因になります。</b>
+        登録後に1件テスト通知を送って、実在の相手に届くことを確かめてください。
+      </div>
+      <div class="scroll short"><table class="g" id="peoTable"></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 文面・URL ========== -->
+<div class="pane" id="pTexts">
+  <div class="card">
+    <div class="card-h"><span class="card-t">文面とURL</span></div>
+    <div class="card-b"><div id="txList"></div></div>
+  </div>
+</div>
+
+</div>
+
+<div class="bar">
+  <div class="bar-in">
+    <span class="st" id="barStatus">JSONを読み込むか、空から始めてください</span>
+    <div class="btns">
+      <button id="btnCheck2">検証する</button>
+      <button class="primary" id="btnExport2">JSONを保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const $=(s)=>document.querySelector(s);
+const $$=(s)=>Array.prototype.slice.call(document.querySelectorAll(s));
+const el=(t,c,x)=>{const n=document.createElement(t); if(c)n.className=c; if(x!=null)n.textContent=x; return n;};
+const today=()=>new Date().toISOString().slice(0,10);
+function note(k,t){const n=el("div","note "+k); if(t)n.appendChild(el("b",null,t)); return n;}
+
+const STEP_NAMES={1:"起票者記票",2:"振り分け確認",3:"発注ノウハウ確認",4:"見積取得",
+  5:"発注",6:"システム処理・上司承認",7:"発注完了確認",8:"納品確認",9:"検収確認"};
+
+const TEXT_DEFS=[
+  ["destHeading","納入先の見出し","入力欄の上に出す一文"],
+  ["destItems","納入先の項目（既定）","改行区切り。部材群ごとに上書きできます"],
+  ["destPlaceholder","納入先の記入例","薄字で表示されます"],
+  ["preHeading","前提条件の見出し",""],
+  ["preCheckLabel","前提条件のチェック文言",""],
+  ["splitNotice","分割結果の説明文",""],
+  ["sendHeading","送信手順の見出し",""],
+  ["sendStep1","送信手順1",""],
+  ["sendStep2","送信手順2","{LIB} が受付ライブラリのリンクに変わります"],
+  ["sendStep3","送信手順3",""],
+  ["sendUrgent","急ぐときの案内","{FLOW} が即時取り込みのリンクに変わります"],
+  ["libLabel","受付ライブラリのリンク表示名",""],
+  ["libUrl","受付ライブラリのURL","起票ツールから開けるようにします"],
+  ["flowLabel","即時取り込みのリンク表示名",""],
+  ["flowUrl","即時取り込みのURL","手動実行するフローのURL"]
+];
+
+const BLANK={version:"0.1.0",updatedAt:today(),classes:[],parts:[],methods:[],
+  groups:[],formats:[],people:[],texts:{
+    destHeading:"以下の項目を入力してください",
+    destItems:["郵便番号","住所","納入先の担当者名","連絡先"],
+    destPlaceholder:"〒000-0000\n○○県○○市○○ 1-2-3\n担当: ○○ 様\nTEL: 000-0000-0000",
+    preHeading:"着手前に確認してください",
+    preCheckLabel:"確認しました",
+    splitNotice:"手配方法、手配先、納地が完全一致するものは同時に作業ができます。分割が意図しない結果となった場合、台帳側で修正するのを忘れないでください。",
+    sendHeading:"台帳へ送る手順",
+    sendStep1:"下の「JSONファイルを保存」を押します",
+    sendStep2:"保存したファイルを {LIB} にドラッグして入れます",
+    sendStep3:"台帳への取り込みは自動で行われます（反映まで数分かかることがあります）",
+    sendUrgent:"急ぐときは {FLOW} を開き、[実行] を押してください",
+    libLabel:"起票受付ライブラリ", libUrl:"",
+    flowLabel:"取り込みを今すぐ実行", flowUrl:""
+  }};
+
+const SAMPLE={version:"0.1.0",updatedAt:today(),
+  classes:[{code:"C10",name:"標準品",desc:"常時取り扱いのある部材"},
+           {code:"C20",name:"特注品",desc:"仕様を確定してから個別に見積を取る部材"}],
+  parts:[{code:"P-000001",no:"AAA-001",name:"品名A 12インチ",cls:"C10"},
+         {code:"P-000002",no:"AAA-002",name:"品名A 8インチ",cls:"C10"},
+         {code:"P-000003",no:"BBB-010",name:"品名C ケーブル",cls:"C20"}],
+  methods:[{code:"M-A",name:"手配方法A",cls:["C10"],steps:[3,4,5,7,8,9],lead:{"5":14,"4":7},pre:[],kb:"S-A-01"},
+           {code:"M-B",name:"手配方法B",cls:["C20"],steps:[3,5,7,8],lead:{"5":30},pre:["仕様の確定状況を確認してください。"],kb:"S-B-01"}],
+  groups:[{id:"G-A",name:"部材群A",pre:[],destItems:null}],
+  formats:[{id:"F-A-1",group:"G-A",variant:"標準",shape:"row",
+    order:["P-000001","P-000002","P-000003"]}],
+  people:[{name:"担当X",mail:"x@example.com"}],
+  texts:BLANK.texts};
+
+let M=null;                 // 編集中のマスタ
+let partSel=new Set();      // 部材の選択行
+let curFmt="";              // 編集中のフォーマットID
+
+/* ===== 共通 ===== */
+function splitPaste(text){
+  return text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n")
+    .map(r=>r.split("\t").map(c=>c.trim()))
+    .filter(r=>r.some(c=>c!==""));
+}
+function nextPartCode(){
+  let mx=0;
+  M.parts.forEach(p=>{ const m=/^P-(\d+)$/.exec(p.code||""); if(m) mx=Math.max(mx,Number(m[1])); });
+  return "P-"+String(mx+1).padStart(6,"0");
+}
+function nextId(list,prefix,key){
+  let mx=0;
+  list.forEach(x=>{ const m=new RegExp("^"+prefix+"-(\\d+)$").exec(x[key]||""); if(m) mx=Math.max(mx,Number(m[1])); });
+  return prefix+"-"+String(mx+1);
+}
+function norm(s){
+  return String(s==null?"":s).replace(/[\s\u3000]/g,"")
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0))
+    .toLowerCase();
+}
+
+/* ===== 検証（起票ツールと同じ規則） ===== */
+function validateMaster(m){
+  const errors=[],warns=[];
+  if(!m) return {errors:["マスタが読み込まれていません"],warns:[],stats:null};
+  ["parts","methods","groups","formats","people"].forEach(k=>{
+    if(!Array.isArray(m[k])) errors.push(k+" が配列ではありません"); });
+  if(errors.length) return {errors,warns,stats:null};
+  const clsSet=new Set((m.classes||[]).map(c=>c.code));
+  if(!(m.classes||[]).length) warns.push("分類コードが1つも登録されていません");
+  const seen=new Set();
+  m.parts.forEach((p,i)=>{
+    if(!p.code) errors.push("部材["+i+"] に内部コードがありません");
+    else if(seen.has(p.code)) errors.push("内部コードが重複: "+p.code);
+    else seen.add(p.code);
+    if(!p.name) warns.push("部材 "+(p.code||i)+" に品名がありません");
+    if(!p.cls) errors.push("部材 "+(p.code||i)+" に分類コードがありません");
+    else if(clsSet.size&&!clsSet.has(p.cls)) errors.push("部材 "+p.code+" の分類 "+p.cls+" が分類マスタにありません");
+  });
+  const covered=new Set();
+  m.methods.forEach((x,i)=>{
+    if(!x.code) errors.push("手配方法["+i+"] にコードがありません");
+    if(!Array.isArray(x.cls)||!x.cls.length) warns.push("手配方法 "+(x.code||i)+" に分類が割り当てられていません");
+    else x.cls.forEach(c=>covered.add(c));
+    if(!Array.isArray(x.steps)||!x.steps.length) warns.push("手配方法 "+(x.code||i)+" に通る段階がありません");
+  });
+  new Set(m.parts.map(p=>p.cls)).forEach(c=>{
+    if(c&&!covered.has(c)) errors.push("分類コード "+c+" に対応する手配方法がありません（この部材は振り分けできません）");
+  });
+  const gids=new Set();
+  m.groups.forEach((g,i)=>{
+    if(!g.id) errors.push("部材群["+i+"] にIDがありません");
+    else if(gids.has(g.id)) errors.push("部材群IDが重複: "+g.id);
+    else gids.add(g.id);
+    if(!g.name) warns.push("部材群 "+(g.id||i)+" に名称がありません");
+  });
+  const fids=new Set();
+  m.formats.forEach((f,i)=>{
+    const tag=f.id||("["+i+"]");
+    if(!f.id) errors.push("フォーマット["+i+"] にIDがありません");
+    else if(fids.has(f.id)) errors.push("フォーマットIDが重複: "+f.id);
+    else fids.add(f.id);
+    if(!gids.has(f.group)) errors.push("フォーマット "+tag+" の部材群が選ばれていません");
+    if(f.shape!=="row"&&f.shape!=="col") errors.push("フォーマット "+tag+" の向きが未設定です");
+    if(!Array.isArray(f.order)||!f.order.length) errors.push("フォーマット "+tag+" に並びがありません");
+    else{
+      f.order.forEach((c,j)=>{ if(!c) errors.push("フォーマット "+tag+" の "+(j+1)+"番目が未設定です");
+        else if(!seen.has(c)) errors.push("フォーマット "+tag+" の "+(j+1)+"番目 "+c+" が部材マスタにありません"); });
+      const dup=f.order.filter((c,j)=>c&&f.order.indexOf(c)!==j);
+      if(dup.length) warns.push("フォーマット "+tag+" に同じ部材が複数回あります");
+    }
+  });
+  m.groups.forEach(g=>{ if(!m.formats.some(f=>f.group===g.id))
+    warns.push("部材群 "+(g.name||g.id)+" にフォーマットがありません（手入力のみになります）"); });
+  m.people.forEach((p,i)=>{
+    if(!p.mail) errors.push("担当者["+(p.name||i)+"] にメールアドレスがありません");
+    else if(p.mail.indexOf("@")<0) warns.push("担当者 "+(p.name||i)+" のメールアドレスの形式を確認してください");
+    if(!p.name) warns.push("担当者["+i+"] に氏名がありません");
+  });
+  const tx=m.texts||{};
+  if(!tx.libUrl) warns.push("受付ライブラリのURLが未設定です");
+  if(!tx.flowUrl) warns.push("即時取り込みのURLが未設定です");
+  return {errors,warns,stats:{
+    classes:(m.classes||[]).length,parts:m.parts.length,methods:m.methods.length,
+    groups:m.groups.length,formats:m.formats.length,people:m.people.length,
+    maxOrder:m.formats.length?Math.max.apply(null,m.formats.map(f=>(f.order||[]).length)):0,
+    noCls:m.parts.filter(p=>!p.cls).length
+  }};
+}
+
+/* ===== 画面共通 ===== */
+function setStatus(){
+  if(!M){ $("#barStatus").textContent="JSONを読み込むか、空から始めてください"; return; }
+  const v=validateMaster(M);
+  $("#barStatus").textContent = v.errors.length
+    ? ("エラー "+v.errors.length+" 件: "+v.errors[0])
+    : (v.warns.length? ("注意 "+v.warns.length+" 件。保存できます") : "問題ありません");
+  $("#verLabel").textContent="v"+(M.version||"?")+"  "+(M.updatedAt||"");
+  ["Cls","Parts","Methods","Groups","Formats","People"].forEach(k=>{
+    const key={Cls:"classes",Parts:"parts",Methods:"methods",Groups:"groups",
+      Formats:"formats",People:"people"}[k];
+    $("#n"+k).textContent=String((M[key]||[]).length);
+  });
+  renderStats();
+}
+function renderStats(){
+  const box=$("#ioStats"); box.innerHTML="";
+  if(!M) return;
+  const s=validateMaster(M).stats||{};
+  [["分類",s.classes],["部材",s.parts],["手配方法",s.methods],["部材群",s.groups],
+   ["フォーマット",s.formats],["担当者",s.people],["最大要素数",s.maxOrder],
+   ["分類なしの部材",s.noCls]].forEach(([k,v])=>{
+    const w=el("span"); w.appendChild(el("i",null,k+" ")); w.appendChild(el("b",null,String(v))); box.appendChild(w);
+  });
+}
+function renderAll(){
+  renderCls(); renderParts(); renderMethods(); renderGroups();
+  renderFormatSel(); renderFormatEdit(); renderPeople(); renderTexts();
+  setStatus();
+}
+
+/* ===== 分類 ===== */
+function renderCls(){
+  const t=$("#clsTable"); t.innerHTML="";
+  if(!M) return;
+  const hr=el("tr");
+  ["コード","名称","説明",""].forEach(h=>hr.appendChild(el("th",null,h)));
+  t.appendChild(hr);
+  (M.classes||[]).forEach((c,i)=>{
+    const tr=el("tr");
+    tr.appendChild(cellInput(c,"code",90));
+    tr.appendChild(cellInput(c,"name",160));
+    tr.appendChild(cellInput(c,"desc"));
+    const a=el("td","a"); a.appendChild(delBtn(()=>{ M.classes.splice(i,1); renderAll(); }));
+    tr.appendChild(a); t.appendChild(tr);
+  });
+}
+function cellInput(obj,key,w){
+  const td=el("td"); if(w) td.style.width=w+"px";
+  const inp=el("input"); inp.type="text"; inp.value=obj[key]==null?"":obj[key];
+  inp.addEventListener("input",()=>{ obj[key]=inp.value; setStatus(); });
+  td.appendChild(inp); return td;
+}
+function delBtn(fn){
+  const b=el("button","ghost sm","消す"); b.type="button";
+  b.addEventListener("click",fn); return b;
+}
+
+/* ===== 部材 ===== */
+function renderParts(){
+  const t=$("#partTable"); t.innerHTML="";
+  if(!M) return;
+  const hr=el("tr");
+  ["","内部コード","品番","品名","分類",""].forEach(h=>hr.appendChild(el("th",null,h)));
+  t.appendChild(hr);
+  M.parts.forEach((p,i)=>{
+    const tr=el("tr"); if(partSel.has(i)) tr.className="sel";
+    const c=el("td","c");
+    const cb=el("input"); cb.type="checkbox"; cb.checked=partSel.has(i); cb.style.width="auto";
+    cb.addEventListener("change",()=>{ cb.checked?partSel.add(i):partSel.delete(i); renderParts(); updateSelInfo(); });
+    c.appendChild(cb); tr.appendChild(c);
+    tr.appendChild(el("td","code",p.code));
+    tr.appendChild(cellInput(p,"no",110));
+    tr.appendChild(cellInput(p,"name"));
+    const td=el("td"); td.style.width="150px";
+    const sel=el("select");
+    sel.appendChild(new Option("（未設定）",""));
+    (M.classes||[]).forEach(c2=>sel.appendChild(new Option(c2.code+" "+(c2.name||""),c2.code)));
+    sel.value=p.cls||"";
+    sel.addEventListener("change",()=>{ p.cls=sel.value; setStatus(); });
+    td.appendChild(sel); tr.appendChild(td);
+    const a=el("td","a");
+    a.appendChild(delBtn(()=>{
+      const used=M.formats.filter(f=>(f.order||[]).indexOf(p.code)>=0);
+      if(used.length && !confirm("この部材はフォーマット "+used.length+" 件で使われています。消しますか。")) return;
+      M.parts.splice(i,1); partSel.clear(); renderAll();
+    }));
+    tr.appendChild(a); t.appendChild(tr);
+  });
+  const bc=$("#bulkCls"); bc.innerHTML="";
+  bc.appendChild(new Option("（未設定にする）",""));
+  (M.classes||[]).forEach(c=>bc.appendChild(new Option(c.code+" "+(c.name||""),c.code)));
+  updateSelInfo();
+}
+function updateSelInfo(){
+  $("#partSelInfo").textContent = partSel.size? (partSel.size+" 行を選択中") : "行を選ぶと、分類をまとめて変えられます";
+}
+
+/* ===== 手配方法 ===== */
+function renderMethods(){
+  const box=$("#mList"); box.innerHTML="";
+  if(!M) return;
+  M.methods.forEach((m,i)=>{
+    const card=el("div","card"); card.style.marginBottom="10px";
+    const h=el("div","card-h");
+    h.appendChild(el("span","card-t",(m.code||"?")+"  "+(m.name||"")));
+    const b=el("div","btns");
+    b.appendChild(delBtn(()=>{ M.methods.splice(i,1); renderAll(); }));
+    h.appendChild(b); card.appendChild(h);
+    const bd=el("div","card-b");
+
+    const r1=el("div","row");
+    r1.appendChild(field("コード",inputFor(m,"code"),140));
+    r1.appendChild(field("名称",inputFor(m,"name"),220));
+    r1.appendChild(field("ノウハウ開始ステップID",inputFor(m,"kb"),180));
+    bd.appendChild(r1);
+
+    // 分類の割り当て
+    const fc=el("div","f");
+    fc.appendChild(el("label",null,"対象の分類コード"));
+    const wrap=el("div"); wrap.style.display="flex"; wrap.style.flexWrap="wrap"; wrap.style.gap="4px 14px";
+    (M.classes||[]).forEach(c=>{
+      const lab=el("label"); lab.style.display="flex"; lab.style.alignItems="center";
+      lab.style.gap="5px"; lab.style.fontSize="13px";
+      const cb=el("input"); cb.type="checkbox"; cb.style.width="auto";
+      m.cls=Array.isArray(m.cls)?m.cls:[];
+      cb.checked=m.cls.indexOf(c.code)>=0;
+      cb.addEventListener("change",()=>{
+        const j=m.cls.indexOf(c.code);
+        if(cb.checked){ if(j<0) m.cls.push(c.code); } else if(j>=0) m.cls.splice(j,1);
+        setStatus();
+      });
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(c.code+" "+(c.name||"")));
+      wrap.appendChild(lab);
+    });
+    if(!(M.classes||[]).length) wrap.appendChild(el("span","hint","分類コードを先に登録してください"));
+    fc.appendChild(wrap); bd.appendChild(fc);
+
+    // 段階とリードタイム
+    const fs=el("div","f");
+    fs.appendChild(el("label",null,"通る段階とリードタイム（日）"));
+    fs.appendChild(el("div","hint","リードタイムは納品日から逆算する日数です。空欄なら逆算しません。"));
+    const tb=el("table","g");
+    const hr=el("tr"); ["","段階","リードタイム"].forEach(x=>hr.appendChild(el("th",null,x))); tb.appendChild(hr);
+    m.steps=Array.isArray(m.steps)?m.steps:[];
+    m.lead=m.lead&&typeof m.lead==="object"?m.lead:{};
+    Object.keys(STEP_NAMES).forEach(k=>{
+      const n=Number(k); const tr=el("tr");
+      const c=el("td","c");
+      const cb=el("input"); cb.type="checkbox"; cb.style.width="auto";
+      cb.checked=m.steps.indexOf(n)>=0;
+      cb.addEventListener("change",()=>{
+        const j=m.steps.indexOf(n);
+        if(cb.checked){ if(j<0){ m.steps.push(n); m.steps.sort((a,b)=>a-b); } }
+        else{ if(j>=0) m.steps.splice(j,1); delete m.lead[k]; renderMethods(); }
+        setStatus();
+      });
+      c.appendChild(cb); tr.appendChild(c);
+      tr.appendChild(el("td",null,n+". "+STEP_NAMES[n]));
+      const td=el("td"); td.style.width="120px";
+      const inp=el("input"); inp.type="number"; inp.min="0"; inp.style.textAlign="right";
+      inp.value=m.lead[k]!=null?m.lead[k]:"";
+      inp.disabled=m.steps.indexOf(n)<0;
+      inp.addEventListener("input",()=>{
+        if(inp.value==="") delete m.lead[k]; else m.lead[k]=Number(inp.value);
+        setStatus();
+      });
+      td.appendChild(inp); tr.appendChild(td);
+      tb.appendChild(tr);
+    });
+    fs.appendChild(tb); bd.appendChild(fs);
+
+    // 前提条件
+    const fp=el("div","f");
+    fp.appendChild(el("label",null,"前提条件（1行に1つ）"));
+    fp.appendChild(el("div","hint","起票時に、確認のチェックとして表示されます。空欄なら表示しません。"));
+    const ta=el("textarea"); ta.rows=3;
+    ta.value=(Array.isArray(m.pre)?m.pre:(m.pre?[m.pre]:[])).join("\n");
+    ta.addEventListener("input",()=>{
+      m.pre=ta.value.split("\n").map(s=>s.trim()).filter(Boolean); setStatus();
+    });
+    fp.appendChild(ta); bd.appendChild(fp);
+
+    card.appendChild(bd); box.appendChild(card);
+  });
+}
+function field(label,node,w){
+  const f=el("div","f"); if(w){f.style.flex="0 0 "+w+"px";} else f.style.flex="1";
+  f.style.minWidth="140px";
+  f.appendChild(el("label",null,label)); f.appendChild(node); return f;
+}
+function inputFor(obj,key){
+  const inp=el("input"); inp.type="text"; inp.value=obj[key]==null?"":obj[key];
+  inp.addEventListener("input",()=>{ obj[key]=inp.value; setStatus(); });
+  return inp;
+}
+
+/* ===== 部材群 ===== */
+function renderGroups(){
+  const box=$("#gList"); box.innerHTML="";
+  if(!M) return;
+  M.groups.forEach((g,i)=>{
+    const card=el("div","card"); card.style.marginBottom="10px";
+    const h=el("div","card-h");
+    h.appendChild(el("span","card-t",(g.id||"?")+"  "+(g.name||"")));
+    const b=el("div","btns");
+    b.appendChild(delBtn(()=>{
+      const used=M.formats.filter(f=>f.group===g.id);
+      if(used.length&&!confirm("この部材群にはフォーマットが "+used.length+" 件あります。消しますか。")) return;
+      M.groups.splice(i,1); renderAll();
+    }));
+    h.appendChild(b); card.appendChild(h);
+    const bd=el("div","card-b");
+    const r=el("div","row");
+    r.appendChild(field("ID",inputFor(g,"id"),140));
+    r.appendChild(field("名称",inputFor(g,"name"),260));
+    bd.appendChild(r);
+
+    const fp=el("div","f");
+    fp.appendChild(el("label",null,"前提条件（1行に1つ）"));
+    const ta=el("textarea"); ta.rows=2;
+    ta.value=(Array.isArray(g.pre)?g.pre:(g.pre?[g.pre]:[])).join("\n");
+    ta.addEventListener("input",()=>{ g.pre=ta.value.split("\n").map(s=>s.trim()).filter(Boolean); setStatus(); });
+    fp.appendChild(ta); bd.appendChild(fp);
+
+    const fd=el("div","f");
+    fd.appendChild(el("label",null,"納入先の項目（1行に1つ。空欄なら既定を使います）"));
+    const ta2=el("textarea"); ta2.rows=3;
+    ta2.value=Array.isArray(g.destItems)?g.destItems.join("\n"):"";
+    ta2.addEventListener("input",()=>{
+      const v=ta2.value.split("\n").map(s=>s.trim()).filter(Boolean);
+      g.destItems=v.length?v:null; setStatus();
+    });
+    fd.appendChild(ta2); bd.appendChild(fd);
+
+    const fs=el("div","hint");
+    const fmts=M.formats.filter(f=>f.group===g.id);
+    fs.textContent="フォーマット: "+(fmts.length?fmts.map(f=>f.variant+"("+(f.order||[]).length+"点)").join(" / "):"なし");
+    bd.appendChild(fs);
+
+    card.appendChild(bd); box.appendChild(card);
+  });
+}
+
+/* ===== フォーマット ===== */
+function renderFormatSel(){
+  const s=$("#fSel"); s.innerHTML="";
+  if(!M) return;
+  s.appendChild(new Option("選択してください",""));
+  M.formats.forEach(f=>{
+    const g=M.groups.find(x=>x.id===f.group);
+    s.appendChild(new Option((g?g.name:"(群なし)")+" / "+(f.variant||"")+"  "+(f.order||[]).length+"点", f.id));
+  });
+  s.value=curFmt;
+}
+function renderFormatEdit(){
+  const box=$("#fEdit"); box.innerHTML="";
+  if(!M||!curFmt) return;
+  const f=M.formats.find(x=>x.id===curFmt);
+  if(!f){ curFmt=""; return; }
+
+  const r=el("div","row");
+  r.appendChild(field("ID",inputFor(f,"id"),130));
+  const gsel=el("select");
+  gsel.appendChild(new Option("（未選択）",""));
+  M.groups.forEach(g=>gsel.appendChild(new Option(g.name||g.id,g.id)));
+  gsel.value=f.group||"";
+  gsel.addEventListener("change",()=>{ f.group=gsel.value; renderAll(); });
+  r.appendChild(field("部材群",gsel,200));
+  r.appendChild(field("バリアント名",inputFor(f,"variant"),180));
+  const ssel=el("select");
+  ssel.appendChild(new Option("横向き（行ベクトル）","row"));
+  ssel.appendChild(new Option("縦向き（列ベクトル）","col"));
+  ssel.value=f.shape||"row";
+  ssel.addEventListener("change",()=>{ f.shape=ssel.value; setStatus(); });
+  r.appendChild(field("向き",ssel,190));
+  box.appendChild(r);
+
+  const del=el("div","btns"); del.style.marginBottom="10px";
+  const db=el("button","danger sm","このフォーマットを消す"); db.type="button";
+  db.addEventListener("click",()=>{
+    if(!confirm("このフォーマットを消します。よろしいですか。")) return;
+    M.formats=M.formats.filter(x=>x!==f); curFmt=""; renderAll();
+  });
+  del.appendChild(db); box.appendChild(del);
+
+  // 品名の貼り付け
+  const fp=el("div","f");
+  fp.appendChild(el("label",null,"Excelの品名の並びを貼り付けて作る"));
+  fp.appendChild(el("div","hint",
+    "横並び・縦並びのどちらでも構いません。品名で部材マスタと照合し、一致したものは自動で埋まります。"));
+  const ta=el("textarea","paste"); ta.placeholder="品名A 12インチ\t品名A 8インチ\t品名C ケーブル";
+  ta.addEventListener("paste",()=>setTimeout(()=>buildOrderFromNames(f,ta.value),0));
+  ta.addEventListener("change",()=>buildOrderFromNames(f,ta.value));
+  fp.appendChild(ta); box.appendChild(fp);
+  const msg=el("div"); msg.id="fMsg"; box.appendChild(msg);
+
+  // 並び
+  const fo=el("div","f");
+  const lab=el("div"); lab.style.display="flex"; lab.style.alignItems="center"; lab.style.gap="10px";
+  lab.appendChild(el("label",null,"並び"));
+  const cnt=el("span","pill",((f.order||[]).length)+"点");
+  lab.appendChild(cnt);
+  const miss=(f.order||[]).filter(c=>!c||!M.parts.some(p=>p.code===c)).length;
+  lab.appendChild(el("span",miss?"pill miss":"pill ok", miss? ("未設定 "+miss+"件"):"すべて設定済み"));
+  const bb=el("div","btns"); bb.style.marginLeft="auto";
+  const ab=el("button","ghost sm","末尾に1つ足す"); ab.type="button";
+  ab.addEventListener("click",()=>{ f.order=(f.order||[]).concat([""]); renderAll(); });
+  const cb2=el("button","ghost sm","並びを空にする"); cb2.type="button";
+  cb2.addEventListener("click",()=>{ if(confirm("並びを空にします。よろしいですか。")){ f.order=[]; renderAll(); } });
+  bb.appendChild(ab); bb.appendChild(cb2); lab.appendChild(bb);
+  fo.appendChild(lab);
+
+  const list=el("div","ordlist");
+  (f.order||[]).forEach((code,i)=>{
+    const ok=code&&M.parts.some(p=>p.code===code);
+    const row=el("div","ord"+(ok?"":" miss"));
+    row.appendChild(el("span","i",String(i+1)));
+    if(f._src&&f._src[i]) row.appendChild(el("span","src",f._src[i]));
+    const sel=el("select");
+    sel.appendChild(new Option("（未設定）",""));
+    M.parts.forEach(p=>sel.appendChild(new Option(p.name+"  ("+p.code+")",p.code)));
+    sel.value=code||"";
+    sel.addEventListener("change",()=>{ f.order[i]=sel.value; renderAll(); });
+    row.appendChild(sel);
+    const rm=el("button","ghost sm","消す"); rm.type="button";
+    rm.addEventListener("click",()=>{ f.order.splice(i,1); if(f._src)f._src.splice(i,1); renderAll(); });
+    row.appendChild(rm);
+    list.appendChild(row);
+  });
+  if(!(f.order||[]).length) list.appendChild(el("div","hint","並びがありません。上から品名を貼り付けてください。"));
+  fo.appendChild(list); box.appendChild(fo);
+}
+
+function buildOrderFromNames(f,text){
+  const rows=splitPaste(text);
+  if(!rows.length) return;
+  const w=Math.max.apply(null,rows.map(r=>r.length)), h=rows.length;
+  const shape=(h===1&&w>1)?"row":(w===1&&h>1)?"col":(w>=h?"row":"col");
+  const names=shape==="row"?rows[0].slice():rows.map(r=>r[0]||"");
+  const byName=new Map(), byNo=new Map();
+  M.parts.forEach(p=>{
+    if(p.name) byName.set(norm(p.name),p.code);
+    if(p.no) byNo.set(norm(p.no),p.code);
+  });
+  const order=[], src=[], unmatched=[];
+  names.forEach((n,i)=>{
+    src.push(n);
+    const k=norm(n);
+    const hit=byName.get(k)||byNo.get(k)||"";
+    order.push(hit);
+    if(!hit) unmatched.push((i+1)+"番目「"+n+"」");
+  });
+  f.order=order; f._src=src; f.shape=shape;
+  const box=$("#fMsg"); box.innerHTML="";
+  const n=note(unmatched.length?"warn":"ok",
+    names.length+"点を読み取りました（"+(shape==="row"?"横向き":"縦向き")+"）。"
+    +(names.length-unmatched.length)+"点が自動で一致しました。");
+  if(unmatched.length){
+    const ul=el("ul");
+    unmatched.slice(0,20).forEach(x=>ul.appendChild(el("li",null,x)));
+    if(unmatched.length>20) ul.appendChild(el("li",null,"ほか "+(unmatched.length-20)+" 件"));
+    n.appendChild(el("div",null,"下の一覧で、赤い行の部材を選んでください。"));
+    n.appendChild(ul);
+  }
+  box.appendChild(n);
+  renderAll();
+}
+
+/* ===== 担当者 ===== */
+function renderPeople(){
+  const t=$("#peoTable"); t.innerHTML="";
+  if(!M) return;
+  const hr=el("tr"); ["氏名","メールアドレス","",""].forEach(h=>hr.appendChild(el("th",null,h)));
+  t.appendChild(hr);
+  M.people.forEach((p,i)=>{
+    const tr=el("tr");
+    tr.appendChild(cellInput(p,"name",180));
+    tr.appendChild(cellInput(p,"mail"));
+    const st=el("td"); st.style.width="90px";
+    st.appendChild(el("span",(p.mail&&p.mail.indexOf("@")>0)?"pill ok":"pill miss",
+      (p.mail&&p.mail.indexOf("@")>0)?"形式OK":"要確認"));
+    tr.appendChild(st);
+    const a=el("td","a");
+    a.appendChild(delBtn(()=>{ M.people.splice(i,1); renderAll(); }));
+    tr.appendChild(a); t.appendChild(tr);
+  });
+}
+
+/* ===== 文面 ===== */
+function renderTexts(){
+  const box=$("#txList"); box.innerHTML="";
+  if(!M) return;
+  M.texts=M.texts||{};
+  TEXT_DEFS.forEach(([key,label,hint])=>{
+    const f=el("div","f");
+    f.appendChild(el("label",null,label));
+    if(hint) f.appendChild(el("div","hint",hint));
+    if(key==="destItems"||key==="destPlaceholder"||key==="splitNotice"){
+      const ta=el("textarea"); ta.rows=key==="splitNotice"?3:4;
+      ta.value=Array.isArray(M.texts[key])?M.texts[key].join("\n"):(M.texts[key]||"");
+      ta.addEventListener("input",()=>{
+        M.texts[key]= key==="destItems"
+          ? ta.value.split("\n").map(s=>s.trim()).filter(Boolean)
+          : ta.value;
+        setStatus();
+      });
+      f.appendChild(ta);
+    }else{
+      const inp=el("input"); inp.type="text"; inp.value=M.texts[key]||"";
+      inp.addEventListener("input",()=>{ M.texts[key]=inp.value; setStatus(); });
+      f.appendChild(inp);
+    }
+    box.appendChild(f);
+  });
+}
+
+/* ===== 出力 ===== */
+function cleanCopy(){
+  const c=JSON.parse(JSON.stringify(M));
+  (c.formats||[]).forEach(f=>{ delete f._src; });
+  c.version=($("#ioVer").value||"").trim()||c.version||"0.1.0";
+  c.updatedAt=$("#ioDate").value||today();
+  return c;
+}
+function doCheck(){
+  const box=$("#checkMsg"); box.innerHTML="";
+  const v=validateMaster(M);
+  if(v.errors.length){
+    const n=note("err","エラーが "+v.errors.length+" 件あります");
+    const ul=el("ul"); v.errors.slice(0,40).forEach(e=>ul.appendChild(el("li",null,e)));
+    if(v.errors.length>40) ul.appendChild(el("li",null,"ほか "+(v.errors.length-40)+" 件"));
+    n.appendChild(ul); box.appendChild(n);
+  }
+  if(v.warns.length){
+    const n=note("warn","注意が "+v.warns.length+" 件あります");
+    const ul=el("ul"); v.warns.slice(0,40).forEach(e=>ul.appendChild(el("li",null,e)));
+    if(v.warns.length>40) ul.appendChild(el("li",null,"ほか "+(v.warns.length-40)+" 件"));
+    n.appendChild(ul); box.appendChild(n);
+  }
+  if(!v.errors.length&&!v.warns.length) box.appendChild(note("ok","問題は見つかりませんでした。"));
+  showPane("pIO");
+  box.scrollIntoView({behavior:"smooth",block:"center"});
+}
+function doExport(){
+  if(!M){ alert("マスタが読み込まれていません。"); return; }
+  const v=validateMaster(M);
+  if(v.errors.length && !confirm("エラーが "+v.errors.length+" 件あります。このまま保存しますか。\n（起票ツール側では取り込めません）")) { doCheck(); return; }
+  const c=cleanCopy();
+  const blob=new Blob([JSON.stringify(c,null,2)],{type:"application/json"});
+  const a=el("a"); a.href=URL.createObjectURL(blob);
+  a.download="master_v"+c.version+"_"+c.updatedAt.replace(/-/g,"")+".json";
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+}
+
+/* ===== 画面切替 ===== */
+function showPane(id){
+  $$(".pane").forEach(p=>p.classList.toggle("on",p.id===id));
+  $$(".tab").forEach(t=>t.classList.toggle("on",t.getAttribute("data-p")===id));
+}
+
+/* ===== 起動 ===== */
+$$(".tab").forEach(t=>t.addEventListener("click",()=>showPane(t.getAttribute("data-p"))));
+
+$("#btnLoad").addEventListener("click",()=>{
+  const box=$("#ioMsg"); box.innerHTML="";
+  let m;
+  try{ m=JSON.parse($("#ioBox").value); }
+  catch(e){ const n=note("err","JSONとして読み取れません"); n.appendChild(el("div","hint",String(e))); box.appendChild(n); return; }
+  M=m; M.texts=M.texts||{}; M.classes=M.classes||[];
+  ["parts","methods","groups","formats","people"].forEach(k=>{ M[k]=Array.isArray(M[k])?M[k]:[]; });
+  partSel.clear(); curFmt="";
+  $("#ioVer").value=M.version||"0.1.0";
+  $("#ioDate").value=M.updatedAt||today();
+  box.appendChild(note("ok","読み込みました。上のタブから編集してください。"));
+  renderAll();
+});
+$("#btnBlank").addEventListener("click",()=>{
+  if(M && !confirm("編集中の内容は失われます。よろしいですか。")) return;
+  M=JSON.parse(JSON.stringify(BLANK)); partSel.clear(); curFmt="";
+  $("#ioVer").value=M.version; $("#ioDate").value=M.updatedAt;
+  $("#ioMsg").innerHTML=""; $("#ioMsg").appendChild(note("ok","空のマスタを作りました。"));
+  renderAll();
+});
+$("#btnSample").addEventListener("click",()=>{
+  $("#ioBox").value=JSON.stringify(SAMPLE,null,2);
+});
+$("#btnCheck").addEventListener("click",doCheck);
+$("#btnCheck2").addEventListener("click",doCheck);
+$("#btnExport").addEventListener("click",doExport);
+$("#btnExport2").addEventListener("click",doExport);
+$("#btnCopy").addEventListener("click",()=>{
+  if(!M) return;
+  $("#ioBox").value=JSON.stringify(cleanCopy(),null,2);
+  const ta=$("#ioBox"); ta.select(); ta.setSelectionRange(0,999999);
+  try{ document.execCommand("copy"); alert("コピーしました。起票ツールの管理者モードに貼り付けてください。"); }
+  catch(e){ alert("コピーできませんでした。上の欄から手動で選択してください。"); }
+});
+
+$("#clsAdd").addEventListener("click",()=>{ if(!M)return; M.classes.push({code:"",name:"",desc:""}); renderAll(); });
+$("#clsPaste").addEventListener("paste",()=>setTimeout(()=>{
+  if(!M)return;
+  splitPaste($("#clsPaste").value).forEach(r=>{
+    if(!r[0]) return;
+    const ex=M.classes.find(c=>c.code===r[0]);
+    if(ex){ ex.name=r[1]||ex.name; ex.desc=r[2]||ex.desc; }
+    else M.classes.push({code:r[0],name:r[1]||"",desc:r[2]||""});
+  });
+  $("#clsPaste").value=""; renderAll();
+},0));
+
+$("#partAdd").addEventListener("click",()=>{ if(!M)return;
+  M.parts.push({code:nextPartCode(),no:"",name:"",cls:""}); renderAll(); });
+$("#partDelSel").addEventListener("click",()=>{
+  if(!M||!partSel.size) return;
+  if(!confirm(partSel.size+" 行を消します。よろしいですか。")) return;
+  M.parts=M.parts.filter((p,i)=>!partSel.has(i)); partSel.clear(); renderAll();
+});
+$("#partPaste").addEventListener("paste",()=>setTimeout(()=>{
+  if(!M)return;
+  const rows=splitPaste($("#partPaste").value);
+  if($("#partReplace").checked){
+    if(!confirm("既存の部材 "+M.parts.length+" 件を置き換えます。よろしいですか。\n（フォーマットの並びが壊れる可能性があります）")) return;
+    M.parts=[];
+  }
+  let add=0,upd=0;
+  rows.forEach(r=>{
+    const no=r[0]||"", name=r[1]||"", cls=r[2]||"";
+    if(!name && !no) return;
+    let ex=null;
+    if(no) ex=M.parts.find(p=>p.no&&norm(p.no)===norm(no));
+    if(!ex && name) ex=M.parts.find(p=>p.name&&norm(p.name)===norm(name));
+    if(ex){ ex.no=no||ex.no; ex.name=name||ex.name; if(cls) ex.cls=cls; upd++; }
+    else{ M.parts.push({code:nextPartCode(),no,name,cls}); add++; }
+  });
+  $("#partPaste").value="";
+  const box=$("#partSelInfo");
+  renderAll();
+  box.textContent="追加 "+add+" 件 / 更新 "+upd+" 件";
+},0));
+$("#bulkApply").addEventListener("click",()=>{
+  if(!M||!partSel.size) return;
+  const v=$("#bulkCls").value;
+  M.parts.forEach((p,i)=>{ if(partSel.has(i)) p.cls=v; });
+  renderAll();
+});
+$("#selAll").addEventListener("click",()=>{ if(!M)return; M.parts.forEach((p,i)=>partSel.add(i)); renderParts(); });
+$("#selNone").addEventListener("click",()=>{ partSel.clear(); renderParts(); });
+$("#selNoCls").addEventListener("click",()=>{
+  if(!M)return; partSel.clear();
+  M.parts.forEach((p,i)=>{ if(!p.cls) partSel.add(i); });
+  renderParts();
+});
+
+$("#mAdd").addEventListener("click",()=>{ if(!M)return;
+  M.methods.push({code:nextId(M.methods,"M","code"),name:"",cls:[],steps:[],lead:{},pre:[],kb:""});
+  renderAll(); });
+$("#gAdd").addEventListener("click",()=>{ if(!M)return;
+  M.groups.push({id:nextId(M.groups,"G","id"),name:"",pre:[],destItems:null}); renderAll(); });
+$("#fAdd").addEventListener("click",()=>{ if(!M)return;
+  const f={id:nextId(M.formats,"F","id"),group:(M.groups[0]||{}).id||"",variant:"",shape:"row",order:[]};
+  M.formats.push(f); curFmt=f.id; renderAll(); showPane("pFormats"); });
+$("#fSel").addEventListener("change",e=>{ curFmt=e.target.value; renderFormatEdit(); });
+
+$("#pAdd").addEventListener("click",()=>{ if(!M)return; M.people.push({name:"",mail:""}); renderAll(); });
+$("#peoPaste").addEventListener("paste",()=>setTimeout(()=>{
+  if(!M)return;
+  splitPaste($("#peoPaste").value).forEach(r=>{
+    const name=r[0]||"", mail=r[1]||"";
+    if(!name&&!mail) return;
+    const ex=M.people.find(p=>p.mail&&mail&&norm(p.mail)===norm(mail));
+    if(ex) ex.name=name||ex.name;
+    else M.people.push({name,mail});
+  });
+  $("#peoPaste").value=""; renderAll();
+},0));
+
+window.addEventListener("beforeunload",e=>{
+  if(M){ e.preventDefault(); e.returnValue=""; }
+});
+
+$("#ioDate").value=today();
+</script>
+</body>
+</html>
