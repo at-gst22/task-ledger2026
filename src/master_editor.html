@@ -143,6 +143,10 @@ hr.sp{border:0;border-top:1px solid var(--rule-2);margin:14px 0}
   <div class="card">
     <div class="card-h"><span class="card-t">はじめに</span></div>
     <div class="card-b">
+      <div class="note warn">
+        <b>実データを入れたJSONの取り扱いに注意してください。</b>
+        氏名・メールアドレス・品番・URLが含まれます。所定の場所にのみ保存してください。
+      </div>
       <div class="note info">
         <b>このツールはマスタのJSONを作るためのものです。</b>
         作ったJSONを起票ツールの管理者モードに貼り付けると、新しい起票ツールが書き出せます。
@@ -314,6 +318,15 @@ hr.sp{border:0;border-top:1px solid var(--rule-2);margin:14px 0}
 <!-- ========== 文面・URL ========== -->
 <div class="pane" id="pTexts">
   <div class="card">
+    <div class="card-h"><span class="card-t">入力ルール</span></div>
+    <div class="card-b">
+      <div class="hint" style="margin-bottom:8px">
+        起票時に入力を必須にする項目を指定します。
+      </div>
+      <div id="ruleList"></div>
+    </div>
+  </div>
+  <div class="card">
     <div class="card-h"><span class="card-t">文面とURL</span></div>
     <div class="card-b"><div id="txList"></div></div>
   </div>
@@ -343,7 +356,28 @@ function note(k,t){const n=el("div","note "+k); if(t)n.appendChild(el("b",null,t
 const STEP_NAMES={1:"起票者記票",2:"振り分け確認",3:"発注ノウハウ確認",4:"見積取得",
   5:"発注",6:"システム処理・上司承認",7:"発注完了確認",8:"納品確認",9:"検収確認"};
 
+const RULE_DEFS=[
+  ["titleBaseRequired","起票タイトルを必須にする"],
+  ["titleSuffixRequired","任意の補足を必須にする"],
+  ["mainAssigneeRequired","手配主担当を必須にする"]
+];
+
 const TEXT_DEFS=[
+  ["titleBaseLabel","起票タイトルの項目名",""],
+  ["titleSuffixLabel","任意の補足の項目名",""],
+  ["titlePreviewLabel","組み上がった名前の項目名",""],
+  ["titlePattern","名前の組み立て",
+    "{base} 起票タイトル / {group} 部材群 / {suffix} 任意の補足。値が空の項目は隣の区切り文字ごと取り除かれます"],
+  ["titlePlaceholder","起票タイトルの記入例",""],
+  ["titleSuffixPlaceholder","任意の補足の記入例",""],
+  ["titleHint","起票タイトルの説明文",""],
+  ["titleSuffixHint","任意の補足の説明文",""],
+  ["pastePlaceholder","貼り付け欄の薄字",""],
+  ["pasteHint","貼り付け欄の説明文",""],
+  ["formatHint","フォーマット選択の説明文",""],
+  ["addManualLabel","手入力欄の項目名",""],
+  ["mainAsgHint","担当者欄の説明文",""],
+  ["subAsgHint","副担当欄の説明文",""],
   ["destHeading","納入先の見出し","入力欄の上に出す一文"],
   ["destItems","納入先の項目（既定）","改行区切り。部材群ごとに上書きできます"],
   ["destPlaceholder","納入先の記入例","薄字で表示されます"],
@@ -362,12 +396,24 @@ const TEXT_DEFS=[
 ];
 
 const BLANK={version:"0.1.0",updatedAt:today(),classes:[],parts:[],methods:[],
-  groups:[],formats:[],people:[],texts:{
+  groups:[],formats:[],people:[],
+  rules:{titleBaseRequired:true,titleSuffixRequired:false,mainAssigneeRequired:true},
+  texts:{
+    titleBaseLabel:"起票タイトル", titleSuffixLabel:"任意の補足",
+    titlePreviewLabel:"台帳に載る名前", titlePattern:"{base}_{group}_{suffix}",
+    titlePlaceholder:"例: 9月分手配", titleSuffixPlaceholder:"例: 追加分",
+    titleHint:"続けて起票する場合、次の起票にも引き継がれます",
+    titleSuffixHint:"空欄で構いません",
+    pastePlaceholder:"ここに貼り付け",
+    pasteHint:"数量の並びだけを選択してコピーし、ここに貼り付けます。品名の行や周辺の列は含めません。",
+    formatHint:"貼り付けた形と要素数から候補を出しますが、確定はご自身で選んでください。",
+    addManualLabel:"明細を手で足す",
+    mainAsgHint:"担当者は分割後の全タスクに引き継がれます。タスクごとの変更は台帳側で行います。",
+    subAsgHint:"複数選択できます。不在でも構いません",
     destHeading:"以下の項目を入力してください",
     destItems:["郵便番号","住所","納入先の担当者名","連絡先"],
     destPlaceholder:"〒000-0000\n○○県○○市○○ 1-2-3\n担当: ○○ 様\nTEL: 000-0000-0000",
-    preHeading:"着手前に確認してください",
-    preCheckLabel:"確認しました",
+    preHeading:"着手前に確認してください", preCheckLabel:"確認しました",
     splitNotice:"手配方法、手配先、納地が完全一致するものは同時に作業ができます。分割が意図しない結果となった場合、台帳側で修正するのを忘れないでください。",
     sendHeading:"台帳へ送る手順",
     sendStep1:"下の「JSONファイルを保存」を押します",
@@ -376,7 +422,7 @@ const BLANK={version:"0.1.0",updatedAt:today(),classes:[],parts:[],methods:[],
     sendUrgent:"急ぐときは {FLOW} を開き、[実行] を押してください",
     libLabel:"起票受付ライブラリ", libUrl:"",
     flowLabel:"取り込みを今すぐ実行", flowUrl:""
-  }};
+  }};;
 
 const SAMPLE={version:"0.1.0",updatedAt:today(),
   classes:[{code:"C10",name:"標準品",desc:"常時取り扱いのある部材"},
@@ -514,7 +560,7 @@ function renderStats(){
 }
 function renderAll(){
   renderCls(); renderParts(); renderMethods(); renderGroups();
-  renderFormatSel(); renderFormatEdit(); renderPeople(); renderTexts();
+  renderFormatSel(); renderFormatEdit(); renderPeople(); renderRules(); renderTexts();
   setStatus();
 }
 
@@ -877,6 +923,22 @@ function renderPeople(){
 }
 
 /* ===== 文面 ===== */
+function renderRules(){
+  const box=$("#ruleList"); box.innerHTML="";
+  if(!M) return;
+  M.rules=M.rules||{};
+  RULE_DEFS.forEach(([key,label])=>{
+    const lab=el("label"); lab.style.display="flex"; lab.style.alignItems="center";
+    lab.style.gap="8px"; lab.style.padding="4px 0"; lab.style.cursor="pointer";
+    const cb=el("input"); cb.type="checkbox"; cb.style.width="auto";
+    cb.checked = M.rules[key]!==false;
+    if(key==="titleSuffixRequired") cb.checked = M.rules[key]===true;
+    cb.addEventListener("change",()=>{ M.rules[key]=cb.checked; setStatus(); });
+    lab.appendChild(cb); lab.appendChild(document.createTextNode(label));
+    box.appendChild(lab);
+  });
+}
+
 function renderTexts(){
   const box=$("#txList"); box.innerHTML="";
   if(!M) return;
@@ -885,7 +947,8 @@ function renderTexts(){
     const f=el("div","f");
     f.appendChild(el("label",null,label));
     if(hint) f.appendChild(el("div","hint",hint));
-    if(key==="destItems"||key==="destPlaceholder"||key==="splitNotice"){
+    if(key==="destItems"||key==="destPlaceholder"||key==="splitNotice"
+      ||key==="pasteHint"||key==="formatHint"||key==="mainAsgHint"){
       const ta=el("textarea"); ta.rows=key==="splitNotice"?3:4;
       ta.value=Array.isArray(M.texts[key])?M.texts[key].join("\n"):(M.texts[key]||"");
       ta.addEventListener("input",()=>{
@@ -957,7 +1020,7 @@ $("#btnLoad").addEventListener("click",()=>{
   let m;
   try{ m=JSON.parse($("#ioBox").value); }
   catch(e){ const n=note("err","JSONとして読み取れません"); n.appendChild(el("div","hint",String(e))); box.appendChild(n); return; }
-  M=m; M.texts=M.texts||{}; M.classes=M.classes||[];
+  M=m; M.texts=M.texts||{}; M.classes=M.classes||[]; M.rules=M.rules||{};
   ["parts","methods","groups","formats","people"].forEach(k=>{ M[k]=Array.isArray(M[k])?M[k]:[]; });
   partSel.clear(); curFmt="";
   $("#ioVer").value=M.version||"0.1.0";

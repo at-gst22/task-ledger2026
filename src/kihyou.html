@@ -73,6 +73,11 @@ input[type=number]{font-family:var(--mono);text-align:right}
 .pair{display:flex;gap:10px;align-items:flex-start}
 .pair>*:first-child{flex:1;min-width:0}
 .req{color:var(--danger);font-size:11px;margin-left:4px}
+.ttlprev{font-family:var(--mono);font-size:14px;padding:7px 10px;
+  background:var(--accent-soft);border:1px solid #C3D8E6;color:var(--accent);
+  word-break:break-all;min-height:36px;display:flex;align-items:center}
+.ttlprev.empty{background:#F7F7F3;border-color:var(--rule-2);color:var(--ink-3);
+  font-family:var(--sans);font-size:12px}
 
 button{border:1px solid var(--ink);background:var(--panel);color:var(--ink);
   padding:7px 14px;cursor:pointer;letter-spacing:.03em}
@@ -222,6 +227,11 @@ hr.sp{border:0;border-top:1px solid var(--rule-2);margin:14px 0}
         <b>この画面は管理者専用です。</b>
         JSONを貼り付けて検証し、問題がなければ新しいHTMLを保存します。
       </div>
+      <div class="note warn">
+        <b>書き出したHTMLの取り扱いに注意してください。</b>
+        担当者の氏名・メールアドレス・品番・URLなど、実データがそのまま埋め込まれます。
+        所定の配布先にのみ置き、それ以外の保管場所へは上げないでください。
+      </div>
       <div class="stats" id="curStats"></div>
       <div class="row">
         <div class="f" style="flex:0 0 180px">
@@ -288,14 +298,14 @@ hr.sp{border:0;border-top:1px solid var(--rule-2);margin:14px 0}
       <hr class="sp">
       <div class="f">
         <label for="pasteBox">Excelから貼り付け</label>
-        <div class="hint">数量の並びだけを選択してコピーし、ここに貼り付けます。品名の行や周辺の列は含めません。</div>
-        <textarea class="paste" id="pasteBox" placeholder="ここに貼り付け"></textarea>
+        <div class="hint" id="pasteHint"></div>
+        <textarea class="paste" id="pasteBox"></textarea>
       </div>
       <div id="parseMsg"></div>
       <hr class="sp">
       <div class="row" style="align-items:flex-end;gap:8px">
         <div class="f" style="flex:1;min-width:220px;margin-bottom:0">
-          <label for="addPart">明細を手で足す</label>
+          <label for="addPart" id="addPartLabel">明細を手で足す</label>
           <select id="addPart"><option value="">部材を選択</option></select>
         </div>
         <div class="f" style="flex:0 0 110px;margin-bottom:0">
@@ -319,6 +329,23 @@ hr.sp{border:0;border-top:1px solid var(--rule-2);margin:14px 0}
       <button class="sec-tog" type="button">閉じる</button>
     </div>
     <div class="sec-b">
+      <div class="row" style="align-items:flex-start">
+        <div class="f" style="flex:1;min-width:220px">
+          <label for="ttlBase"><span id="ttlBaseLabel">起票タイトル</span><span class="req" id="ttlBaseReq" style="display:none">必須</span></label>
+          <input type="text" id="ttlBase">
+          <div class="hint" id="ttlBaseHint"></div>
+        </div>
+        <div class="f" style="flex:1;min-width:180px">
+          <label for="ttlSuf"><span id="ttlSufLabel">任意の補足</span><span class="req" id="ttlSufReq" style="display:none">必須</span></label>
+          <input type="text" id="ttlSuf">
+          <div class="hint" id="ttlSufHint"></div>
+        </div>
+      </div>
+      <div class="f">
+        <label id="ttlPrevLabel">台帳に載る名前</label>
+        <div class="ttlprev" id="ttlPrev"></div>
+      </div>
+      <hr class="sp">
       <div class="f">
         <label for="dest">納入先</label>
         <div id="destGuide"></div>
@@ -337,16 +364,17 @@ hr.sp{border:0;border-top:1px solid var(--rule-2);margin:14px 0}
             <label class="und"><input type="checkbox" id="reqUnd"> 未定</label></div>
         </div>
         <div class="f" style="flex:1;min-width:200px">
-          <label for="mainAsg">手配主担当<span class="req">必須</span></label>
+          <label for="mainAsg"><span>手配主担当</span><span class="req" id="mainReq" style="display:none">必須</span></label>
           <div class="pair"><select id="mainAsg"></select>
             <label class="und" id="mainUndWrap" style="display:none">
               <input type="checkbox" id="mainUnd"> 未定</label></div>
         </div>
       </div>
       <div class="f">
-        <label>手配副担当<span class="hint" style="margin-left:8px">複数選択できます。不在でも構いません</span></label>
+        <label>手配副担当<span class="hint" id="subHint" style="margin-left:8px"></span></label>
         <div class="subs" id="subAsg"></div>
       </div>
+      <div class="hint" id="asgHint"></div>
     </div>
   </section>
 
@@ -402,7 +430,7 @@ hr.sp{border:0;border-top:1px solid var(--rule-2);margin:14px 0}
      ============================================================ -->
 <script type="application/json" id="masterData">
 {
-  "version": "0.2.0",
+  "version": "0.4.0",
   "updatedAt": "2026-08-12",
 
   "classes": [
@@ -461,7 +489,27 @@ hr.sp{border:0;border-top:1px solid var(--rule-2);margin:14px 0}
     { "name":"担当Z", "mail":"{{MAIL_Z}}" }
   ],
 
+  "rules": {
+    "titleBaseRequired": true,
+    "titleSuffixRequired": false,
+    "mainAssigneeRequired": true
+  },
+
   "texts": {
+    "titleBaseLabel": "起票タイトル",
+    "titleSuffixLabel": "任意の補足",
+    "titlePreviewLabel": "台帳に載る名前",
+    "titlePattern": "{base}_{group}_{suffix}",
+    "titlePlaceholder": "例: 9月分手配",
+    "titleSuffixPlaceholder": "例: 追加分",
+    "titleHint": "続けて起票する場合、次の起票にも引き継がれます",
+    "titleSuffixHint": "空欄で構いません",
+    "pastePlaceholder": "ここに貼り付け",
+    "pasteHint": "数量の並びだけを選択してコピーし、ここに貼り付けます。品名の行や周辺の列は含めません。",
+    "formatHint": "貼り付けた形と要素数から候補を出しますが、確定はご自身で選んでください。",
+    "addManualLabel": "明細を手で足す",
+    "mainAsgHint": "担当者は分割後の全タスクに引き継がれます。タスクごとの変更は台帳側で行います。",
+    "subAsgHint": "複数選択できます。不在でも構いません",
     "destHeading": "以下の項目を入力してください",
     "destItems": ["郵便番号","住所","納入先の担当者名","連絡先"],
     "destPlaceholder": "〒000-0000\n○○県○○市○○ 1-2-3\n担当: ○○ 様\nTEL: 000-0000-0000",
@@ -533,6 +581,11 @@ const formatOf =(i)=>MASTER.formats.find(f=>f.id===i)||null;
 const classOf  =(c)=>(MASTER.classes||[]).find(x=>x.code===c)||null;
 const personOf =(m)=>MASTER.people.find(p=>p.mail===m)||null;
 const T = (k)=>((MASTER.texts||{})[k]||"");
+const RULE_DEFAULTS={titleBaseRequired:true,titleSuffixRequired:false,mainAssigneeRequired:true};
+const R = (k)=>{
+  const r=MASTER.rules||{};
+  return Object.prototype.hasOwnProperty.call(r,k) ? !!r[k] : !!RULE_DEFAULTS[k];
+};
 
 function note(kind,text){ const n=el("div","note "+kind); if(text)n.appendChild(el("b",null,text)); return n; }
 function asArray(v){ return Array.isArray(v)?v:(v?[v]:[]); }
@@ -542,9 +595,34 @@ const S={session:[],cur:null,carry:null,lastParse:null,openTasks:{},allOpen:true
 
 function newTicket(){
   return { id:uuid(), group:"", format:"", preOk:[], details:[], rawPaste:"",
+    title:"", titleSuffix:"",
     dest:"", destUnd:false, due:"", dueUnd:false,
     reqBy:"", reqUnd:false, main:"", mainUnd:false, subs:[],
     confirmed:[], confirmSig:"" };
+}
+
+/* 台帳に載る名前。パターンはマスタで変更できる。
+   値が空の項目は、隣接する区切り文字ごと取り除かれる。 */
+function composedTitle(t){
+  const g=groupOf(t.group);
+  const vals={ base:(t.title||"").trim(), group:g?g.name:"", suffix:(t.titleSuffix||"").trim() };
+  const pat=T("titlePattern")||"{base}_{group}_{suffix}";
+  const tokens=pat.split(/(\{[a-zA-Z]+\})/);
+  let out="", sep="", started=false, dropHead=false;
+  tokens.forEach(tk=>{
+    if(!tk) return;
+    const m=/^\{([a-zA-Z]+)\}$/.exec(tk);
+    if(m){
+      const v=Object.prototype.hasOwnProperty.call(vals,m[1])?vals[m[1]]:"";
+      if(v){
+        out += (started||!dropHead ? sep : "") + v;
+        sep=""; started=true; dropHead=false;
+      }else if(!started){ sep=""; dropHead=true; }
+    }else{
+      sep+=tk;
+    }
+  });
+  return out;
 }
 
 /* 明細と納品日から署名を作る。変わったら確認をやり直させる */
@@ -678,6 +756,7 @@ function validateMaster(m){
     if(!p.mail) errors.push("担当者["+(p.name||i)+"] にメールアドレスがありません");
     else if(p.mail.indexOf("@")<0 && p.mail.indexOf("{{")<0) warns.push("担当者 "+(p.name||i)+" のメールアドレスの形式を確認してください");
   });
+  if(m.rules && typeof m.rules!=="object") errors.push("rules はオブジェクトにしてください");
   const tx=m.texts||{};
   if(!tx.libUrl)  warns.push("受付ライブラリのURL（texts.libUrl）が未設定です");
   if(!tx.flowUrl) warns.push("即時取り込みのURL（texts.flowUrl）が未設定です");
@@ -706,6 +785,21 @@ function initMasters(){
   const ap=$("#addPart");
   MASTER.parts.forEach(p=>ap.appendChild(new Option(p.name+"  ("+p.code+")",p.code)));
   $("#dest").placeholder=T("destPlaceholder");
+  $("#ttlBaseReq").style.display=R("titleBaseRequired")?"":"none";
+  $("#ttlSufReq").style.display=R("titleSuffixRequired")?"":"none";
+  $("#mainReq").style.display=R("mainAssigneeRequired")?"":"none";
+  $("#ttlBaseLabel").textContent=T("titleBaseLabel")||"起票タイトル";
+  $("#ttlSufLabel").textContent=T("titleSuffixLabel")||"任意の補足";
+  $("#ttlPrevLabel").textContent=T("titlePreviewLabel")||"台帳に載る名前";
+  $("#ttlBase").placeholder=T("titlePlaceholder");
+  $("#ttlSuf").placeholder=T("titleSuffixPlaceholder");
+  $("#ttlBaseHint").textContent=T("titleHint");
+  $("#ttlSufHint").textContent=T("titleSuffixHint");
+  $("#pasteBox").placeholder=T("pastePlaceholder");
+  $("#pasteHint").textContent=T("pasteHint");
+  $("#asgHint").textContent=T("mainAsgHint");
+  $("#subHint").textContent=T("subAsgHint");
+  $("#addPartLabel").textContent=T("addManualLabel")||"明細を手で足す";
   const sub=$("#subAsg"); sub.innerHTML="";
   MASTER.people.forEach(p=>{
     const lab=el("label"); const cb=el("input"); cb.type="checkbox"; cb.value=p.mail;
@@ -745,7 +839,7 @@ function renderFormats(){
   }
   const lab=el("div","f");
   lab.appendChild(el("label",null,"フォーマット"));
-  lab.appendChild(el("div","hint","貼り付けた形と要素数から候補を出しますが、確定はご自身で選んでください。"));
+  lab.appendChild(el("div","hint",T("formatHint")));
   box.appendChild(lab);
   const wrap=el("div","cands");
   fs.forEach(f=>{
@@ -975,7 +1069,7 @@ function renderSession(){
     const row=el("div","sitem");
     row.appendChild(el("span","sno",String(i+1)));
     const nm=el("div");
-    nm.appendChild(el("div","sname",g?g.name:"(部材群なし)"));
+    nm.appendChild(el("div","sname",composedTitle(t)||(g?g.name:"(部材群なし)")));
     nm.appendChild(el("div","hint",(f?f.variant+" / ":"")+t.details.length+"明細 / "+splitTasks(t).tasks.length+"タスク"));
     row.appendChild(nm);
     row.appendChild(el("span","smeta",t.id.slice(0,8)));
@@ -999,6 +1093,13 @@ function renderDestGuide(){
   }
 }
 
+function renderTitle(){
+  const box=$("#ttlPrev"); const t=S.cur;
+  const s=composedTitle(t);
+  if(s){ box.className="ttlprev"; box.textContent=s; }
+  else{ box.className="ttlprev empty"; box.textContent="起票タイトルと部材群を入れると、ここに表示されます"; }
+}
+
 function renderSum(){
   const t=S.cur;
   const g=groupOf(t.group), f=formatOf(t.format);
@@ -1006,7 +1107,8 @@ function renderSum(){
   $("#sum2").textContent = t.details.length? ((f?f.variant+" / ":"")+t.details.length+"明細") : "";
   const p=personOf(t.main);
   $("#sum3").textContent = t.details.length
-    ? [(t.mainUnd?"手配主担当 未定":(p?"手配主担当 "+p.name:"")),
+    ? [composedTitle(t),
+       (t.mainUnd?"手配主担当 未定":(p?"手配主担当 "+p.name:"")),
        (t.subs.length?"副"+t.subs.length+"名":"")].filter(Boolean).join(" / ")
     : "";
   const n=splitTasks(t).tasks.length;
@@ -1026,7 +1128,12 @@ function ticketIssues(t){
   if(!t.details.length) out.push("明細がありません");
   if(t.details.some(d=>!(Number(d.qty)>0))) out.push("数量が0の明細があります");
   if(splitTasks(t).unresolved.length) out.push("手配方法を判定できない明細があります");
-  if(!t.main && !t.mainUnd) out.push("手配主担当を選んでください");
+  if(R("titleBaseRequired") && !(t.title||"").trim())
+    out.push((T("titleBaseLabel")||"起票タイトル")+"を入力してください");
+  if(R("titleSuffixRequired") && !(t.titleSuffix||"").trim())
+    out.push((T("titleSuffixLabel")||"任意の補足")+"を入力してください");
+  if(R("mainAssigneeRequired") && !t.main && !t.mainUnd)
+    out.push("手配主担当を選んでください");
   const codes=splitTasks(t).tasks.map(x=>x.method.code);
   if(codes.length){
     const rest=codes.filter(c=>t.confirmed.indexOf(c)<0).length;
@@ -1048,7 +1155,10 @@ function setSecState(){
   const msgs=t.group?preMessagesFor(t.group):[];
   const ok1=!!t.group && (!msgs.length || (t.preOk.length===msgs.length && t.preOk.every(Boolean)));
   const ok2=t.details.length>0;
-  const ok3=ok2 && (!!t.main || t.mainUnd);
+  const ok3=ok2
+    && (!R("mainAssigneeRequired") || !!t.main || t.mainUnd)
+    && (!R("titleBaseRequired") || !!(t.title||"").trim())
+    && (!R("titleSuffixRequired") || !!(t.titleSuffix||"").trim());
   const codes=splitTasks(t).tasks.map(x=>x.method.code);
   const ok4=ok2 && codes.length>0 && codes.every(c=>t.confirmed.indexOf(c)>=0);
   mark("#sec1",ok1,!ok1);
@@ -1078,7 +1188,7 @@ function collapse(sel,on){
 function refresh(){
   renderPreReq(); renderFormats(); renderDetails();
   renderSplitNotice(); renderSplit(); renderNextChoice();
-  renderSession(); renderDestGuide(); renderSum();
+  renderSession(); renderDestGuide(); renderTitle(); renderSum();
   setSecState(); autoCollapse(); updateBar();
 }
 
@@ -1168,6 +1278,7 @@ function buildConflictUI(conflicts){
 /* ===== 属性 ===== */
 function readAttrs(){
   const t=S.cur;
+  t.title=$("#ttlBase").value; t.titleSuffix=$("#ttlSuf").value;
   t.dest=$("#dest").value; t.destUnd=$("#destUnd").checked;
   t.due=$("#dueDate").value; t.dueUnd=$("#dueUnd").checked;
   t.reqBy=$("#reqBy").value; t.reqUnd=$("#reqUnd").checked;
@@ -1176,6 +1287,7 @@ function readAttrs(){
 }
 function writeAttrs(){
   const t=S.cur;
+  $("#ttlBase").value=t.title; $("#ttlSuf").value=t.titleSuffix;
   $("#dest").value=t.dest; $("#destUnd").checked=t.destUnd;
   $("#dueDate").value=t.due; $("#dueUnd").checked=t.dueUnd;
   $("#reqBy").value=t.reqBy; $("#reqUnd").checked=t.reqUnd;
@@ -1197,7 +1309,8 @@ function commitTicket(){
   readAttrs();
   if(!isReady(S.cur)){ alert(ticketIssues(S.cur)[0]); return; }
   S.session.push(S.cur);
-  S.carry={dest:S.cur.dest,destUnd:S.cur.destUnd,due:S.cur.due,dueUnd:S.cur.dueUnd,
+  S.carry={title:S.cur.title,titleSuffix:"",
+    dest:S.cur.dest,destUnd:S.cur.destUnd,due:S.cur.due,dueUnd:S.cur.dueUnd,
     reqBy:S.cur.reqBy,reqUnd:S.cur.reqUnd,main:S.cur.main,mainUnd:S.cur.mainUnd,subs:S.cur.subs.slice()};
   startNew(true);
 }
@@ -1206,6 +1319,7 @@ function startNew(carry){
   S.userToggled1=false; S.userToggled2=false;
   if(carry&&S.carry) Object.assign(S.cur,S.carry);
   $("#groupSel").value=""; $("#pasteBox").value=""; $("#parseMsg").innerHTML="";
+  $("#ttlSuf").value="";
   collapse("#sec1",false); collapse("#sec2",false);
   $("#secOut").style.display="none";
   writeAttrs(); refresh();
@@ -1226,6 +1340,9 @@ function buildPayload(){
       const main=t.mainUnd?null:(t.main||null);
       return {
         ticketId:t.id,
+        title:composedTitle(t),
+        titleBase:(t.title||"").trim()||null,
+        titleSuffix:(t.titleSuffix||"").trim()||null,
         group:g?g.name:null, groupId:t.group||null,
         formatId:t.format||null, formatVariant:f?f.variant:null,
         splitConfirmed:true,
@@ -1240,7 +1357,8 @@ function buildPayload(){
           const p=partOf(d.code), c=p?classOf(p.cls):null;
           return {position:d.manual?null:d.pos, manualEntry:!!d.manual,
             partCode:d.code, partNo:p?(p.no||null):null, partName:p?p.name:null,
-            classCode:p?p.cls:null, className:c?c.name:null, quantity:Number(d.qty)||0};
+            classCode:p?p.cls:null, className:c?c.name:null,
+            quantity:Number(d.qty)||0, initialQuantity:Number(d.qty)||0};
         }),
         tasks:sp.tasks.map((tk,i)=>({
           taskSeq:i+1, methodCode:tk.method.code, methodName:tk.method.name,
@@ -1294,7 +1412,8 @@ function showOutput(){
   readAttrs();
   if(isReady(S.cur)){
     S.session.push(S.cur);
-    S.carry={dest:S.cur.dest,destUnd:S.cur.destUnd,due:S.cur.due,dueUnd:S.cur.dueUnd,
+    S.carry={title:S.cur.title,titleSuffix:"",
+      dest:S.cur.dest,destUnd:S.cur.destUnd,due:S.cur.due,dueUnd:S.cur.dueUnd,
       reqBy:S.cur.reqBy,reqUnd:S.cur.reqUnd,main:S.cur.main,mainUnd:S.cur.mainUnd,subs:S.cur.subs.slice()};
     S.cur=newTicket(); Object.assign(S.cur,S.carry);
     $("#groupSel").value=""; $("#pasteBox").value=""; $("#parseMsg").innerHTML="";
@@ -1461,6 +1580,9 @@ function bind(){
   });
   ["#dest","#dueDate","#reqBy","#mainAsg"].forEach(s=>{
     $(s).addEventListener("change",()=>{ readAttrs(); refresh(); });
+  });
+  ["#ttlBase","#ttlSuf"].forEach(s=>{
+    $(s).addEventListener("input",()=>{ readAttrs(); renderTitle(); renderSum(); setSecState(); updateBar(); });
   });
 
   $("#btnAddAnother").addEventListener("click",commitTicket);
