@@ -1,0 +1,129 @@
+{
+  "$comment": [
+    "SharePointリストの定義。フロー『リストを構築する』が読み込んで一括生成する。",
+    "DisplayName は画面表示名、Name / StaticName が内部名になる。",
+    "内部名を英字で固定するため、必ず CreateFieldAsXml で作成すること。",
+    "画面から手で作ると内部名が _x62c5_... のようになり、以後の参照が破綻する。"
+  ],
+
+  "lists": [
+    {
+      "title": "手配起票",
+      "internal": "TicketList",
+      "description": "起票1件＝1行。1起票＝1部材群＝1納地。",
+      "template": 100,
+      "fields": [
+        { "name": "TicketId", "xml": "<Field Type='Text' DisplayName='起票ID' Name='TicketId' StaticName='TicketId' Required='TRUE' EnforceUniqueValues='TRUE' Indexed='TRUE' MaxLength='64' />" },
+        { "name": "GroupName", "xml": "<Field Type='Text' DisplayName='部材群' Name='GroupName' StaticName='GroupName' MaxLength='128' />" },
+        { "name": "FormatVariant", "xml": "<Field Type='Text' DisplayName='フォーマット' Name='FormatVariant' StaticName='FormatVariant' MaxLength='128' />" },
+        { "name": "DeliveryTo", "xml": "<Field Type='Note' DisplayName='納入先' Name='DeliveryTo' StaticName='DeliveryTo' NumLines='6' RichText='FALSE' AppendOnly='FALSE' />" },
+        { "name": "DeliveryToUndecided", "xml": "<Field Type='Boolean' DisplayName='納入先 未定' Name='DeliveryToUndecided' StaticName='DeliveryToUndecided'><Default>0</Default></Field>" },
+        { "name": "DueDate", "xml": "<Field Type='DateTime' DisplayName='納品日' Name='DueDate' StaticName='DueDate' Format='DateOnly' />" },
+        { "name": "DueDateUndecided", "xml": "<Field Type='Boolean' DisplayName='納品日 未定' Name='DueDateUndecided' StaticName='DueDateUndecided'><Default>0</Default></Field>" },
+        { "name": "Requester", "xml": "<Field Type='User' DisplayName='起票者' Name='Requester' StaticName='Requester' UserSelectionMode='PeopleOnly' />" },
+        { "name": "RequesterUndecided", "xml": "<Field Type='Boolean' DisplayName='起票者 未定' Name='RequesterUndecided' StaticName='RequesterUndecided'><Default>0</Default></Field>" },
+        { "name": "MainAssignee", "xml": "<Field Type='User' DisplayName='手配主担当' Name='MainAssignee' StaticName='MainAssignee' UserSelectionMode='PeopleOnly' Indexed='TRUE' />" },
+        { "name": "SubAssignees", "xml": "<Field Type='UserMulti' DisplayName='手配副担当' Name='SubAssignees' StaticName='SubAssignees' Mult='TRUE' UserSelectionMode='PeopleOnly' />" },
+        { "name": "PreConfirmed", "xml": "<Field Type='Boolean' DisplayName='前提条件 確認済' Name='PreConfirmed' StaticName='PreConfirmed'><Default>0</Default></Field>" },
+        { "name": "PreMessages", "xml": "<Field Type='Note' DisplayName='前提条件の内容' Name='PreMessages' StaticName='PreMessages' NumLines='4' RichText='FALSE' />" },
+        { "name": "TicketStatus", "xml": "<Field Type='Choice' DisplayName='状態' Name='TicketStatus' StaticName='TicketStatus' Format='Dropdown' Indexed='TRUE'><CHOICES><CHOICE>進行中</CHOICE><CHOICE>完了</CHOICE><CHOICE>中止</CHOICE></CHOICES><Default>進行中</Default></Field>" },
+        { "name": "CompletedAt", "xml": "<Field Type='DateTime' DisplayName='完了日時' Name='CompletedAt' StaticName='CompletedAt' Format='DateTime' />" },
+        { "name": "TaskCount", "xml": "<Field Type='Number' DisplayName='タスク数' Name='TaskCount' StaticName='TaskCount' Decimals='0' />" },
+        { "name": "DetailCount", "xml": "<Field Type='Number' DisplayName='明細数' Name='DetailCount' StaticName='DetailCount' Decimals='0' />" },
+        { "name": "TaskLink", "xml": "<Field Type='URL' DisplayName='タスクを見る' Name='TaskLink' StaticName='TaskLink' Format='Hyperlink' />" },
+        { "name": "ToolVersion", "xml": "<Field Type='Text' DisplayName='ツール版' Name='ToolVersion' StaticName='ToolVersion' MaxLength='32' />" },
+        { "name": "MasterHash", "xml": "<Field Type='Text' DisplayName='マスタ' Name='MasterHash' StaticName='MasterHash' MaxLength='32' />" },
+        { "name": "ImportedAt", "xml": "<Field Type='DateTime' DisplayName='取込日時' Name='ImportedAt' StaticName='ImportedAt' Format='DateTime' />" },
+        { "name": "SourceFile", "xml": "<Field Type='Text' DisplayName='取込元ファイル' Name='SourceFile' StaticName='SourceFile' MaxLength='255' />" },
+        { "name": "IsDeleted", "xml": "<Field Type='Boolean' DisplayName='削除' Name='IsDeleted' StaticName='IsDeleted'><Default>0</Default></Field>" }
+      ],
+      "titleDisplayName": "起票の名前"
+    },
+
+    {
+      "title": "手配タスク",
+      "internal": "TaskList",
+      "description": "手配方法ごとの作業単位。ステータス・期限・通知はここに付く。",
+      "template": 100,
+      "fields": [
+        { "name": "TaskId", "xml": "<Field Type='Text' DisplayName='タスクID' Name='TaskId' StaticName='TaskId' Required='TRUE' EnforceUniqueValues='TRUE' Indexed='TRUE' MaxLength='64' />" },
+        { "name": "TicketId", "xml": "<Field Type='Text' DisplayName='起票ID' Name='TicketId' StaticName='TicketId' Required='TRUE' Indexed='TRUE' MaxLength='64' />" },
+        { "name": "TicketTitle", "xml": "<Field Type='Text' DisplayName='起票の名前' Name='TicketTitle' StaticName='TicketTitle' MaxLength='255' />" },
+        { "name": "TaskSeq", "xml": "<Field Type='Number' DisplayName='枝番' Name='TaskSeq' StaticName='TaskSeq' Decimals='0' />" },
+        { "name": "MethodCode", "xml": "<Field Type='Text' DisplayName='手配方法コード' Name='MethodCode' StaticName='MethodCode' MaxLength='32' />" },
+        { "name": "MethodName", "xml": "<Field Type='Text' DisplayName='手配方法' Name='MethodName' StaticName='MethodName' MaxLength='128' Indexed='TRUE' />" },
+        { "name": "TaskStatus", "xml": "<Field Type='Choice' DisplayName='ステータス' Name='TaskStatus' StaticName='TaskStatus' Format='Dropdown' Indexed='TRUE'><CHOICES><CHOICE>2 振り分け確認</CHOICE><CHOICE>3 発注ノウハウ確認</CHOICE><CHOICE>4 見積取得</CHOICE><CHOICE>5 発注</CHOICE><CHOICE>6 システム処理・上司承認</CHOICE><CHOICE>7 発注完了確認</CHOICE><CHOICE>8 納品確認</CHOICE><CHOICE>9 検収確認</CHOICE><CHOICE>完了</CHOICE><CHOICE>融合済み</CHOICE><CHOICE>中止</CHOICE></CHOICES><Default>2 振り分け確認</Default></Field>" },
+        { "name": "Steps", "xml": "<Field Type='Note' DisplayName='通る段階' Name='Steps' StaticName='Steps' NumLines='2' RichText='FALSE' />" },
+        { "name": "KnowhowStepId", "xml": "<Field Type='Text' DisplayName='ノウハウ開始ID' Name='KnowhowStepId' StaticName='KnowhowStepId' MaxLength='64' />" },
+        { "name": "MainAssignee", "xml": "<Field Type='User' DisplayName='手配主担当' Name='MainAssignee' StaticName='MainAssignee' UserSelectionMode='PeopleOnly' Indexed='TRUE' />" },
+        { "name": "SubAssignees", "xml": "<Field Type='UserMulti' DisplayName='手配副担当' Name='SubAssignees' StaticName='SubAssignees' Mult='TRUE' UserSelectionMode='PeopleOnly' />" },
+        { "name": "Requester", "xml": "<Field Type='User' DisplayName='起票者' Name='Requester' StaticName='Requester' UserSelectionMode='PeopleOnly' />" },
+        { "name": "DueDate", "xml": "<Field Type='DateTime' DisplayName='納品日' Name='DueDate' StaticName='DueDate' Format='DateOnly' />" },
+        { "name": "NextDueDate", "xml": "<Field Type='DateTime' DisplayName='次の必要作業日' Name='NextDueDate' StaticName='NextDueDate' Format='DateOnly' Indexed='TRUE' />" },
+        { "name": "RequiredDates", "xml": "<Field Type='Note' DisplayName='必要作業日' Name='RequiredDates' StaticName='RequiredDates' NumLines='4' RichText='FALSE' />" },
+        { "name": "DetailCount", "xml": "<Field Type='Number' DisplayName='明細数' Name='DetailCount' StaticName='DetailCount' Decimals='0' />" },
+        { "name": "TotalQuantity", "xml": "<Field Type='Number' DisplayName='合計数量' Name='TotalQuantity' StaticName='TotalQuantity' Decimals='0' />" },
+        { "name": "DetailDigest", "xml": "<Field Type='Note' DisplayName='内訳' Name='DetailDigest' StaticName='DetailDigest' NumLines='3' RichText='FALSE' />" },
+        { "name": "DetailLink", "xml": "<Field Type='URL' DisplayName='明細を見る' Name='DetailLink' StaticName='DetailLink' Format='Hyperlink' />" },
+        { "name": "IsCompleted", "xml": "<Field Type='Boolean' DisplayName='完了' Name='IsCompleted' StaticName='IsCompleted'><Default>0</Default></Field>" },
+        { "name": "CompletedAt", "xml": "<Field Type='DateTime' DisplayName='完了日時' Name='CompletedAt' StaticName='CompletedAt' Format='DateTime' />" },
+        { "name": "AutoClosed", "xml": "<Field Type='Boolean' DisplayName='自動クローズ' Name='AutoClosed' StaticName='AutoClosed'><Default>0</Default></Field>" },
+        { "name": "MergedInto", "xml": "<Field Type='Text' DisplayName='統合先タスクID' Name='MergedInto' StaticName='MergedInto' MaxLength='64' />" },
+        { "name": "LastCardLink", "xml": "<Field Type='URL' DisplayName='最後の通知' Name='LastCardLink' StaticName='LastCardLink' Format='Hyperlink' />" },
+        { "name": "IsDeleted", "xml": "<Field Type='Boolean' DisplayName='削除' Name='IsDeleted' StaticName='IsDeleted'><Default>0</Default></Field>" }
+      ],
+      "titleDisplayName": "タスク名"
+    },
+
+    {
+      "title": "手配明細",
+      "internal": "DetailList",
+      "description": "部材1点＝1行。通常は直接開かず、タスクから絞り込んで参照する。",
+      "template": 100,
+      "fields": [
+        { "name": "DetailId", "xml": "<Field Type='Text' DisplayName='明細ID' Name='DetailId' StaticName='DetailId' Required='TRUE' EnforceUniqueValues='TRUE' Indexed='TRUE' MaxLength='64' />" },
+        { "name": "TicketId", "xml": "<Field Type='Text' DisplayName='起票ID' Name='TicketId' StaticName='TicketId' Indexed='TRUE' MaxLength='64' />" },
+        { "name": "TaskId", "xml": "<Field Type='Text' DisplayName='タスクID' Name='TaskId' StaticName='TaskId' Required='TRUE' Indexed='TRUE' MaxLength='64' />" },
+        { "name": "Position", "xml": "<Field Type='Number' DisplayName='位置' Name='Position' StaticName='Position' Decimals='0' />" },
+        { "name": "ManualEntry", "xml": "<Field Type='Boolean' DisplayName='手入力' Name='ManualEntry' StaticName='ManualEntry'><Default>0</Default></Field>" },
+        { "name": "PartCode", "xml": "<Field Type='Text' DisplayName='内部コード' Name='PartCode' StaticName='PartCode' MaxLength='64' />" },
+        { "name": "PartNo", "xml": "<Field Type='Text' DisplayName='品番' Name='PartNo' StaticName='PartNo' MaxLength='128' />" },
+        { "name": "ClassCode", "xml": "<Field Type='Text' DisplayName='分類コード' Name='ClassCode' StaticName='ClassCode' MaxLength='32' />" },
+        { "name": "ClassName", "xml": "<Field Type='Text' DisplayName='分類' Name='ClassName' StaticName='ClassName' MaxLength='128' />" },
+        { "name": "Quantity", "xml": "<Field Type='Number' DisplayName='数量' Name='Quantity' StaticName='Quantity' Decimals='0' Required='TRUE' />" },
+        { "name": "InitialQuantity", "xml": "<Field Type='Number' DisplayName='初期数量' Name='InitialQuantity' StaticName='InitialQuantity' Decimals='0' />" },
+        { "name": "IsCompleted", "xml": "<Field Type='Boolean' DisplayName='手配完了' Name='IsCompleted' StaticName='IsCompleted'><Default>0</Default></Field>" },
+        { "name": "CompletedAt", "xml": "<Field Type='DateTime' DisplayName='完了日時' Name='CompletedAt' StaticName='CompletedAt' Format='DateTime' />" },
+        { "name": "IsDeleted", "xml": "<Field Type='Boolean' DisplayName='削除' Name='IsDeleted' StaticName='IsDeleted'><Default>0</Default></Field>" }
+      ],
+      "titleDisplayName": "品名"
+    },
+
+    {
+      "title": "許可バージョン",
+      "internal": "AllowedVersionList",
+      "description": "取り込みを許可する起票ツールの版数。検証フローが参照する。",
+      "template": 100,
+      "fields": [
+        { "name": "IsAllowed", "xml": "<Field Type='Boolean' DisplayName='許可' Name='IsAllowed' StaticName='IsAllowed'><Default>1</Default></Field>" },
+        { "name": "MasterHash", "xml": "<Field Type='Text' DisplayName='マスタ' Name='MasterHash' StaticName='MasterHash' MaxLength='32' />" },
+        { "name": "Memo", "xml": "<Field Type='Note' DisplayName='備考' Name='Memo' StaticName='Memo' NumLines='2' RichText='FALSE' />" }
+      ],
+      "titleDisplayName": "版数"
+    }
+  ],
+
+  "libraries": [
+    {
+      "title": "起票受付",
+      "internal": "IntakeLibrary",
+      "description": "起票ツールが出力したJSONの投入口。",
+      "template": 101,
+      "folders": ["取込済", "重複スキップ", "エラー"]
+    }
+  ],
+
+  "$views": {
+    "$comment": "ビューは画面から作る。フィルタ条件は docs/リスト設計.md を参照。"
+  }
+}

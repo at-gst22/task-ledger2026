@@ -1,0 +1,152 @@
+{
+  "$comment": [
+    "列の書式設定JSON。リストの列見出し → 列の設定 → この列の書式設定 に貼り付ける。",
+    "配色は白地＋濃紺を基調とし、注意が必要なものだけ琥珀・赤で立たせる。",
+    "$comment を含む項目は貼り付ける前に取り除くこと（SharePointは余分なキーを無視するが、混乱を避けるため）。"
+  ],
+
+  "明細_数量": {
+    "$use": "手配明細 の「数量」列",
+    "$desc": "初期数量と違えば琥珀色にし、元の値を添える。台帳上で変更された明細が一目で分かる。",
+    "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+    "elmType": "div",
+    "style": { "display": "flex", "align-items": "center", "gap": "6px" },
+    "children": [
+      {
+        "elmType": "span",
+        "style": {
+          "font-family": "Consolas, monospace",
+          "font-weight": "=if(@currentField == [$InitialQuantity], '400', '700')",
+          "color": "=if(@currentField == [$InitialQuantity], '#1A2332', '#B5710F')"
+        },
+        "txtContent": "@currentField"
+      },
+      {
+        "elmType": "span",
+        "style": {
+          "display": "=if(@currentField == [$InitialQuantity], 'none', 'inline')",
+          "font-size": "11px",
+          "color": "#B5710F",
+          "border": "1px solid #E4C892",
+          "background-color": "#FBF2E2",
+          "padding": "0 6px"
+        },
+        "txtContent": "=' 元 ' + [$InitialQuantity] + ' '"
+      }
+    ]
+  },
+
+  "タスク_次の必要作業日": {
+    "$use": "手配タスク の「次の必要作業日」列",
+    "$desc": "過ぎていれば赤、7日以内なら琥珀、それ以外は通常。完了しているものは灰色にする。",
+    "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+    "elmType": "div",
+    "style": {
+      "font-family": "Consolas, monospace",
+      "padding": "2px 8px",
+      "border-left": "3px solid",
+      "border-color": "=if([$IsCompleted] == true, '#DCDCD6', if(@currentField == '', '#DCDCD6', if(@currentField < @now, '#9B2C2C', if(@currentField < @now + 604800000, '#B5710F', '#1F5C8B'))))",
+      "background-color": "=if([$IsCompleted] == true, 'transparent', if(@currentField == '', 'transparent', if(@currentField < @now, '#FBEAEA', if(@currentField < @now + 604800000, '#FBF2E2', 'transparent'))))",
+      "color": "=if([$IsCompleted] == true, '#8A94A6', '#1A2332')"
+    },
+    "txtContent": "=if(@currentField == '', '—', toLocaleDateString(@currentField))"
+  },
+
+  "タスク_ステータス": {
+    "$use": "手配タスク の「ステータス」列",
+    "$desc": "段階が進むほど濃い青にする。完了は緑、中止・融合済みは灰色。",
+    "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+    "elmType": "div",
+    "style": {
+      "display": "inline-block",
+      "padding": "1px 10px",
+      "font-size": "12px",
+      "border": "1px solid",
+      "border-color": "=if(@currentField == '完了', '#B9D6C7', if(indexOf(@currentField, '中止') > -1 || indexOf(@currentField, '融合') > -1, '#DCDCD6', '#C3D8E6'))",
+      "background-color": "=if(@currentField == '完了', '#E7F1EC', if(indexOf(@currentField, '中止') > -1 || indexOf(@currentField, '融合') > -1, '#F2F2EE', '#E8F0F6'))",
+      "color": "=if(@currentField == '完了', '#2F6B4F', if(indexOf(@currentField, '中止') > -1 || indexOf(@currentField, '融合') > -1, '#8A94A6', '#1F5C8B'))"
+    },
+    "txtContent": "@currentField"
+  },
+
+  "起票_状態": {
+    "$use": "手配起票 の「状態」列",
+    "$desc": "進行中は青、完了は緑、中止は灰色。",
+    "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+    "elmType": "div",
+    "style": {
+      "display": "inline-block",
+      "padding": "1px 10px",
+      "font-size": "12px",
+      "border": "1px solid",
+      "border-color": "=if(@currentField == '完了', '#B9D6C7', if(@currentField == '中止', '#DCDCD6', '#C3D8E6'))",
+      "background-color": "=if(@currentField == '完了', '#E7F1EC', if(@currentField == '中止', '#F2F2EE', '#E8F0F6'))",
+      "color": "=if(@currentField == '完了', '#2F6B4F', if(@currentField == '中止', '#8A94A6', '#1F5C8B'))"
+    },
+    "txtContent": "@currentField"
+  },
+
+  "共通_未定フラグ": {
+    "$use": "「納入先 未定」「納品日 未定」「起票者 未定」の各列",
+    "$desc": "未定のときだけ琥珀の印を出す。決まっている行には何も出さない。",
+    "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+    "elmType": "div",
+    "style": {
+      "display": "=if(@currentField == true, 'inline-block', 'none')",
+      "padding": "0 8px",
+      "font-size": "11px",
+      "border": "1px solid #E4C892",
+      "background-color": "#FBF2E2",
+      "color": "#B5710F"
+    },
+    "txtContent": "未定"
+  },
+
+  "共通_リンク": {
+    "$use": "「明細を見る」「タスクを見る」の各列",
+    "$desc": "URL列をボタンの見た目にする。",
+    "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+    "elmType": "a",
+    "attributes": {
+      "href": "@currentField",
+      "target": "_blank"
+    },
+    "style": {
+      "display": "=if(@currentField == '', 'none', 'inline-block')",
+      "padding": "1px 10px",
+      "font-size": "12px",
+      "border": "1px solid #C3D8E6",
+      "background-color": "#E8F0F6",
+      "color": "#1F5C8B",
+      "text-decoration": "none"
+    },
+    "txtContent": "開く"
+  },
+
+  "明細_手配完了": {
+    "$use": "手配明細 の「手配完了」列",
+    "$desc": "完了は緑のチェック、未完了は薄い枠だけ。",
+    "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+    "elmType": "div",
+    "style": {
+      "display": "inline-block",
+      "width": "18px",
+      "height": "18px",
+      "line-height": "18px",
+      "text-align": "center",
+      "font-size": "12px",
+      "border": "1px solid",
+      "border-color": "=if(@currentField == true, '#2F6B4F', '#DCDCD6')",
+      "background-color": "=if(@currentField == true, '#E7F1EC', 'transparent')",
+      "color": "#2F6B4F"
+    },
+    "txtContent": "=if(@currentField == true, '✓', '')"
+  },
+
+  "ビュー_タスク行": {
+    "$use": "手配タスク のビュー → 現在のビューの書式設定",
+    "$desc": "期限を過ぎた未完了の行を、行ごと薄い赤にする。完了行は薄く沈める。",
+    "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/row-formatting.schema.json",
+    "additionalRowClass": "=if([$IsCompleted] == true, 'sp-field-quaternaryText', if([$NextDueDate] == '', '', if([$NextDueDate] < @now, 'sp-css-backgroundColor-errorBackground', if([$NextDueDate] < @now + 604800000, 'sp-css-backgroundColor-warningBackground', ''))))"
+  }
+}
